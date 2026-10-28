@@ -49,6 +49,7 @@ Autorizado por el usuario para cubrir coincidencias reconocidas por Georef que n
 - Consulta real del 2026-10-28 para «Perú 781, Santiago del Estero»: HTTP 200, `resultType=houseNumber`, `houseNumberType=interpolated`, `position=-27.77751, -64.26501`, `address.houseNumber=781`, ciudad/provincia Santiago del Estero.
 - Al ser `interpolated`, el backend lo devuelve como sugerencia aproximada, no como resultado exacto. Los tipos `PA`/`MPA` sí se devuelven como candidatos.
 - La API key se guarda solo en `backend/.env` (`HERE_API_KEY`) y nunca se expone al frontend. Revisar la cobertura, los términos y el plan de almacenamiento vigentes de HERE antes de persistir resultados.
+- El cliente reintenta una vez los HTTP 429 usando `HERE_MAX_RETRIES` y `HERE_RETRY_DELAY`, respetando `Retry-After` con un tope de 3 segundos. Si el límite persiste, el endpoint sigue funcionando con las sugerencias de OpenStreetMap.
 
 ## Limitaciones de la verificación
 

@@ -618,6 +618,14 @@ def _here_item(house_number="781", house_number_type="interpolated", state="Sant
     }
 
 
+def _mock_here_429(retry_after=None):
+    mock = MagicMock()
+    mock.status_code = 429
+    mock.text = ""
+    mock.headers = {} if retry_after is None else {"Retry-After": str(retry_after)}
+    return mock
+
+
 def _here_candidate(interpolada=True):
     return {
         "lat": -27.77751,
@@ -691,6 +699,42 @@ def test_here_client_deshabilitado_no_consulta(monkeypatch):
         )
     assert result == []
     get.assert_not_called()
+
+
+def test_here_client_reintenta_429(monkeypatch):
+    from geocodificacion.services.here import HereClient
+
+    monkeypatch.setattr("django.conf.settings.HERE_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.HERE_API_KEY", "test-key")
+    monkeypatch.setattr("django.conf.settings.HERE_MAX_RETRIES", 1)
+    monkeypatch.setattr("django.conf.settings.HERE_RETRY_DELAY", 0.0)
+    with patch(
+        "geocodificacion.services.here.requests.get",
+        side_effect=[_mock_here_429(retry_after=0), _mock_response({"items": [_here_item()]})],
+    ) as get:
+        result = HereClient().search_exact(
+            "Perú", "781", "Santiago del Estero", "Santiago del Estero"
+        )
+    assert len(result) == 1
+    assert result[0]["_interpolada"] is True
+    assert get.call_count == 2
+
+
+def test_here_client_429_persistente(monkeypatch):
+    from geocodificacion.services.here import HereClient, HereServiceError
+
+    monkeypatch.setattr("django.conf.settings.HERE_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.HERE_API_KEY", "test-key")
+    monkeypatch.setattr("django.conf.settings.HERE_MAX_RETRIES", 1)
+    monkeypatch.setattr("django.conf.settings.HERE_RETRY_DELAY", 0.0)
+    with patch(
+        "geocodificacion.services.here.requests.get",
+        side_effect=[_mock_here_429(retry_after=0), _mock_here_429(retry_after=0)],
+    ):
+        with pytest.raises(HereServiceError):
+            HereClient().search_exact(
+                "Perú", "781", "Santiago del Estero", "Santiago del Estero"
+            )
 
 
 def test_geocodificar_usa_here_exacto(client):

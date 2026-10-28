@@ -5,6 +5,7 @@ import json
 import logging
 import math
 import re
+import time
 import unicodedata
 
 import requests
@@ -146,16 +147,33 @@ class HereClient:
             "in": "countryCode:ARG",
             "apiKey": self.api_key,
         }
-        try:
-            response = requests.get(
-                self.base_url,
-                params=params,
-                headers={"User-Agent": self.USER_AGENT},
-                timeout=self.timeout,
-            )
-        except requests.RequestException as exc:
-            logger.warning("HERE request failed: %s", type(exc).__name__)
-            raise HereServiceError("timeout_or_network") from exc
+        max_retries = max(0, min(int(getattr(settings, "HERE_MAX_RETRIES", 1)), 3))
+        retry_delay = max(0.0, min(float(getattr(settings, "HERE_RETRY_DELAY", 1.0)), 5.0))
+        response = None
+        for intento in range(max_retries + 1):
+            try:
+                response = requests.get(
+                    self.base_url,
+                    params=params,
+                    headers={"User-Agent": self.USER_AGENT},
+                    timeout=self.timeout,
+                )
+            except requests.RequestException as exc:
+                logger.warning("HERE request failed: %s", type(exc).__name__)
+                raise HereServiceError("timeout_or_network") from exc
+
+            if response.status_code != 429 or intento >= max_retries:
+                break
+
+            espera = retry_delay
+            retry_after = response.headers.get("Retry-After") if response.headers else None
+            try:
+                espera = min(max(float(retry_after), 0.0), 3.0)
+            except (TypeError, ValueError):
+                pass
+            logger.warning("HERE HTTP 429; reintentando en %.1f s", espera)
+            if espera:
+                time.sleep(espera)
 
         if response.status_code != 200:
             logger.warning("HERE HTTP %s (non-2xx)", response.status_code)

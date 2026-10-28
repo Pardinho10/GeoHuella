@@ -81,6 +81,8 @@ HERE_API_KEY = config("HERE_API_KEY", default="")
 HERE_BASE_URL = config("HERE_BASE_URL", default="https://geocode.search.hereapi.com/v1/geocode")
 HERE_TIMEOUT = config("HERE_TIMEOUT", default=8, cast=int)
 HERE_MIN_SCORE = config("HERE_MIN_SCORE", default=0.8, cast=float)
+HERE_MAX_RETRIES = config("HERE_MAX_RETRIES", default=1, cast=int)
+HERE_RETRY_DELAY = config("HERE_RETRY_DELAY", default=1.0, cast=float)
 HERE_CACHE_TTL = config("HERE_CACHE_TTL", default=86400, cast=int)
 
 # Rutas: HeiGIT/OpenRouteService Directions v2 (solo backend).

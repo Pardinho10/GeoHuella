@@ -39,7 +39,7 @@ Endpoints base `/api/`:
 - El cliente elimina prefijos genéricos de vía (`Calle`, `Avenida`, `Av.`, etc.) y compara tokens de la calle, tolerando variantes como `Calle Libertad` / `Avenida Libertad`.
 - Si la altura exacta no aparece, se prueban alturas vecinas de la misma calle (`-1, +1, -2, +2, -10, +10, -100, +100`) y se devuelven hasta cinco sugerencias en un `404`; nunca se agregan automáticamente.
 - Todas las consultas a Nominatim comparten un lock de archivo entre procesos del mismo host, un intervalo mínimo de 1.1 s y caché. Las sugerencias cercanas tienen un presupuesto máximo configurable (`NOMINATIM_NEARBY_BUDGET_SECONDS`, 6 s por defecto) para acotar la latencia de un 404 sin resultados.
-- HERE es opcional y se activa con `HERE_ENABLED=true` y `HERE_API_KEY`. Los resultados `PA`/`MPA` se devuelven como candidatos; los `interpolated` se devuelven como sugerencias aproximadas.
+- HERE es opcional y se activa con `HERE_ENABLED=true` y `HERE_API_KEY`. Los resultados `PA`/`MPA` se devuelven como candidatos; los `interpolated` se devuelven como sugerencias aproximadas. Ante HTTP 429 se reintenta de forma acotada (`HERE_MAX_RETRIES`, `HERE_RETRY_DELAY`).
 
 ## Rutas
 

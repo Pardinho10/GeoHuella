@@ -1,6 +1,6 @@
 # Propuesta de rutas — GeoHuella
 
-**Estado: propuesta, no implementada.** Este documento define el contrato tentativo para unir huellas con una ruta. No modifica todavía `docs/contrato-api.md`.
+**Estado: Fase 2 implementada para ruta en orden fijo.** La optimización de orden (`optimizar=true`) todavía no está implementada; el endpoint devuelve 400 `optimizacion_no_disponible`. El contrato vigente está en [`contrato-api.md`](contrato-api.md).
 
 ## Objetivo
 
@@ -14,7 +14,7 @@ Permitir que la persona seleccione varias huellas y vea el recorrido por calles,
 - Optimización: 500 solicitudes/día, 40/minuto.
 - Perfiles: `driving-car`, `foot-walking`, `cycling-regular`.
 - Devuelve geometría GeoJSON.
-- La API key queda solo en el backend.
+- La API key queda solo en el backend (`ROUTING_API_KEY`).
 
 Alternativas: HERE Routing, GraphHopper, Mapbox Directions u OSRM self-hosted. No se debe consultar un proveedor desde el frontend con una key embebida.
 
@@ -84,8 +84,10 @@ Campos:
 |---|---|---|
 | 400 | `puntos_invalidos` | Menos de 2 o más de 20 puntos, coordenadas inválidas o fuera de Argentina. |
 | 400 | `perfil_invalido` | Perfil fuera de `walking`, `driving`, `cycling`. |
-| 429 | `demasiadas_rutas` | Se superó el límite local de solicitudes. |
+| 400 | `optimizacion_no_disponible` | Se pidió `optimizar=true`; la optimización todavía no está implementada. |
+| 429 | `demasiadas_solicitudes` | Se superó el límite del backend. |
 | 502 | `routing_no_disponible` | El proveedor falló, agotó el timeout o devolvió una respuesta inesperada. |
+| 503 | `routing_no_configurado` | Falta la API key o el servicio está apagado. |
 
 Formato de error, consistente con el resto de la API:
 
@@ -122,8 +124,8 @@ La línea debe distinguirse de los marcadores y respetar el tema visual. Las hue
 
 ## Fases de implementación
 
-1. **Fase actual:** marca GeoHuella y huellas SVG.
-2. Backend: cliente de routing, endpoint `/api/ruta/`, validación, caché y tests mockeados.
+1. ~~Marca GeoHuella y huellas SVG.~~
+2. ~~Backend: cliente de routing, endpoint `/api/ruta/`, validación, caché y tests mockeados.~~
 3. Frontend: selección de huellas, perfil, línea GeoJSON, distancia/duración y quitar ruta.
 4. Optimización de orden con límite de puntos y pruebas de error.
-5. Actualizar `docs/contrato-api.md` cuando la implementación esté verificada.
+5. Verificación con una API key real de HeiGIT y actualización del contrato si cambia algo.

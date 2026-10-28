@@ -69,7 +69,7 @@ NOMINATIM_BASE_URL = config("NOMINATIM_BASE_URL", default="https://nominatim.ope
 NOMINATIM_TIMEOUT = config("NOMINATIM_TIMEOUT", default=8, cast=int)
 NOMINATIM_USER_AGENT = config(
     "NOMINATIM_USER_AGENT",
-    default="PilotoMapa/0.1 (educational address lookup; https://www.openstreetmap.org/copyright)",
+    default="GeoHuella/0.1 (educational address lookup; https://www.openstreetmap.org/copyright)",
 )
 NOMINATIM_RATE_LIMIT_SECONDS = config("NOMINATIM_RATE_LIMIT_SECONDS", default=1.1, cast=float)
 NOMINATIM_NEARBY_BUDGET_SECONDS = config("NOMINATIM_NEARBY_BUDGET_SECONDS", default=6.0, cast=float)
@@ -82,6 +82,17 @@ HERE_BASE_URL = config("HERE_BASE_URL", default="https://geocode.search.hereapi.
 HERE_TIMEOUT = config("HERE_TIMEOUT", default=8, cast=int)
 HERE_MIN_SCORE = config("HERE_MIN_SCORE", default=0.8, cast=float)
 HERE_CACHE_TTL = config("HERE_CACHE_TTL", default=86400, cast=int)
+
+# Rutas: HeiGIT/OpenRouteService Directions v2 (solo backend).
+ROUTING_ENABLED = config("ROUTING_ENABLED", default=False, cast=bool)
+ROUTING_API_KEY = config("ROUTING_API_KEY", default="")
+ROUTING_BASE_URL = config(
+    "ROUTING_BASE_URL",
+    default="https://api.heigit.org/openrouteservice/v2/directions",
+)
+ROUTING_TIMEOUT = config("ROUTING_TIMEOUT", default=10, cast=int)
+ROUTING_CACHE_TTL = config("ROUTING_CACHE_TTL", default=300, cast=int)
+
 PROVINCIAS_CACHE_TTL = config("PROVINCIAS_CACHE_TTL", default=86400, cast=int)
 GEOCODIFICACION_CACHE_TTL = config("GEOCODIFICACION_CACHE_TTL", default=86400, cast=int)
 

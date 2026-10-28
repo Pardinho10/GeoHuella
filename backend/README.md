@@ -31,6 +31,7 @@ Endpoints base `/api/`:
 - `provincias/`: provincias de Georef.
 - `geocodificar/`: búsqueda de direcciones; puede devolver candidatos de Georef o de Nominatim.
 - `ubicar-coordenadas/`: unidad territorial para un par lat/lng.
+- `ruta/`: ruta por calles entre 2 y 20 puntos; requiere `ROUTING_ENABLED=true` y `ROUTING_API_KEY`.
 
 ## Búsqueda y sugerencias
 
@@ -40,6 +41,14 @@ Endpoints base `/api/`:
 - Todas las consultas a Nominatim comparten un lock de archivo entre procesos del mismo host, un intervalo mínimo de 1.1 s y caché. Las sugerencias cercanas tienen un presupuesto máximo configurable (`NOMINATIM_NEARBY_BUDGET_SECONDS`, 6 s por defecto) para acotar la latencia de un 404 sin resultados.
 - HERE es opcional y se activa con `HERE_ENABLED=true` y `HERE_API_KEY`. Los resultados `PA`/`MPA` se devuelven como candidatos; los `interpolated` se devuelven como sugerencias aproximadas.
 
+## Rutas
+
+- Proveedor: HeiGIT/OpenRouteService Directions v2 (`ROUTING_BASE_URL`).
+- Perfiles: `walking` → `foot-walking`, `driving` → `driving-car`, `cycling` → `cycling-regular`.
+- Límite actual: 2 a 20 puntos. `optimizar=true` todavía devuelve `400 optimizacion_no_disponible`.
+- La ruta se cachea `ROUTING_CACHE_TTL` segundos; no se persiste.
+- Crear una API key gratuita en <https://account.heigit.org/> y configurarla solo en el backend. La key no se envía al frontend.
+
 ## Tests
 
 ```bash
@@ -47,7 +56,7 @@ source .venv/bin/activate
 pytest
 ```
 
-Los tests simulan Georef y Nominatim (sin red). La caché se aísla por test.
+Los tests simulan Georef, Nominatim y el proveedor de rutas (sin red). La caché se aísla por test.
 
 ## Variables de entorno
 

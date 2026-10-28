@@ -1,4 +1,4 @@
-# Contrato de API — Piloto Mapa de Argentina
+# Contrato de API — GeoHuella
 
 Fuente de verdad compartida entre backend y frontend. Base `/api/`. JSON UTF-8. Sin autenticación. Los ejemplos de direcciones son ilustrativos: las respuestas reales dependen de la cobertura y ranking de Georef.
 
@@ -133,7 +133,58 @@ Si Georef no informa unidad territorial, devuelve 200 y campos territoriales nul
 }
 ```
 
-## 5. Errores uniformes
+## 5. Ruta — `POST /api/ruta/`
+
+Calcula una ruta por calles entre 2 y 20 huellas. Requiere `ROUTING_ENABLED=true` y `ROUTING_API_KEY` configurada en el backend; la key nunca se expone al frontend. El proveedor actual es HeiGIT/OpenRouteService Directions v2.
+
+```json
+{
+  "puntos": [
+    { "lat": -27.784, "lng": -64.267 },
+    { "lat": -27.782, "lng": -64.265 }
+  ],
+  "perfil": "walking",
+  "volver_al_inicio": false,
+  "optimizar": false
+}
+```
+
+| Campo | Tipo | Obligatorio | Descripción |
+|---|---|---|---|
+| `puntos` | array | sí | Entre 2 y 20 puntos con `lat`/`lng` numéricos, finitos y dentro de Argentina. |
+| `perfil` | string | no | `walking` (default), `driving` o `cycling`. |
+| `optimizar` | boolean | no | Default `false`. Si es `true`, responde 400 `optimizacion_no_disponible` hasta implementar la fase de optimización. |
+| `volver_al_inicio` | boolean | no | Default `false`. Si es `true`, agrega el primer punto al final del recorrido. |
+
+`200 OK`
+
+```json
+{
+  "ruta": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [[-64.267, -27.784], [-64.265, -27.782]]
+        },
+        "properties": { "summary": { "distance": 2450.4, "duration": 1800 } }
+      }
+    ]
+  },
+  "distancia_metros": 2450.4,
+  "duracion_segundos": 1800,
+  "orden": [0, 1]
+}
+```
+
+- `ruta` es GeoJSON listo para MapLibre.
+- `orden` contiene índices del array `puntos` en el orden recorrido. Con `volver_al_inicio=true`, el índice `0` se repite al final.
+- La ruta se cachea durante `ROUTING_CACHE_TTL` segundos y no se persiste en `localStorage`.
+- Solo se envían coordenadas y perfil al proveedor; no se envían nombres de lugares.
+
+## 6. Errores uniformes
 
 Todos los errores usan esta envoltura JSON:
 
@@ -152,7 +203,10 @@ Todos los errores usan esta envoltura JSON:
 | 404 | `no_encontrada` | Georef y el fallback exacto no hallaron ubicación; puede incluir opcionalmente `error.sugerencias` con hasta 5 alturas cercanas de la misma calle/localidad/provincia. |
 | 422 | `fuera_de_rango` | Coordenadas fuera de la caja geográfica acordada para Argentina. |
 | 429 | `demasiadas_solicitudes` | Límite de solicitudes del backend. |
+| 400 | `optimizacion_no_disponible` | Se solicitó `optimizar=true`; la optimización de orden todavía no está implementada. |
 | 502 | `servicio_no_disponible` | Georef/Nominatim falló, agotó el timeout o devolvió una respuesta inesperada. Un fallo de HERE se degrada a las sugerencias disponibles, no a 502. |
+| 502 | `routing_no_disponible` | El proveedor de rutas falló, agotó el timeout o devolvió una respuesta inválida. |
+| 503 | `routing_no_configurado` | `ROUTING_ENABLED` está apagado o falta `ROUTING_API_KEY`. |
 
 Los errores 400 pueden incluir `campos`, con mensajes por campo:
 
@@ -166,14 +220,14 @@ Los errores 400 pueden incluir `campos`, con mensajes por campo:
 }
 ```
 
-## 6. Contrato visual de sugerencias
+## 7. Contrato visual de sugerencias
 
 - En un 404 con `error.sugerencias`, el frontend muestra una sección separada “Ubicaciones cercanas” con dirección y punto de mapa por candidato. Se informa que no se encontró la altura exacta.
 - La persona puede seleccionar una o varias sugerencias y agregarlas explícitamente. Nunca se agregan automáticamente ni se presentan como coincidencia exacta.
 - Mostrar el indicador de aproximación “Cercana · verificá antes de agregar”. Los marcadores de sugerencias usan estilo distinto a candidatos exactos.
 - Una respuesta 404 sin `sugerencias` conserva el estado de error no encontrado normal.
 
-## 7. Reglas compartidas del cliente
+## 8. Reglas compartidas del cliente
 
 - El frontend agrega candidatos elegidos como elementos locales; no existe endpoint para guardar ni eliminar elementos.
 - El nombre se asigna en el cliente. El contador monotónico solo avanza cuando se crea un elemento sin nombre provisto por el usuario; buscar candidatos o crear elementos con nombre personalizado no lo incrementa. Borrar elementos nunca reduce el contador ni reutiliza números.

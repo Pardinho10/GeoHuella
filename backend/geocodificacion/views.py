@@ -2,10 +2,11 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 
-from .serializers import GeocodificarSerializer, UbicarCoordenadasSerializer
+from .serializers import GeocodificarSerializer, UbicarCoordenadasSerializer, RutaSerializer
 from .services.georef import GeorefClient, GeorefServiceError
 from .services.nominatim import NominatimClient, NominatimServiceError
 from .services.here import HereClient, HereServiceError
+from .services.routing import RoutingClient, RoutingServiceError
 
 
 @api_view(["GET"])
@@ -142,4 +143,41 @@ def ubicar_coordenadas(request):
                        "mensaje": "El servicio de georreferencia no está disponible."}},
             status=status.HTTP_502_BAD_GATEWAY,
         )
+    return Response(resultado)
+
+
+@api_view(["POST"])
+def ruta(request):
+    serializer = RutaSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+
+    if data["optimizar"]:
+        return Response(
+            {"error": {"codigo": "optimizacion_no_disponible",
+                       "mensaje": "La optimización del orden de las huellas todavía no está disponible."}},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    client = RoutingClient()
+    if not client.disponible:
+        return Response(
+            {"error": {"codigo": "routing_no_configurado",
+                       "mensaje": "El servicio de rutas no está configurado."}},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    try:
+        resultado = client.calcular_ruta(
+            data["puntos"],
+            data["perfil"],
+            data["volver_al_inicio"],
+        )
+    except RoutingServiceError:
+        return Response(
+            {"error": {"codigo": "routing_no_disponible",
+                       "mensaje": "No se pudo calcular la ruta. Intentá nuevamente en unos minutos."}},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
     return Response(resultado)

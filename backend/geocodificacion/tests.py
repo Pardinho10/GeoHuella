@@ -10,6 +10,8 @@ def _clear_cache(monkeypatch):
     monkeypatch.setattr("geocodificacion.services.nominatim.RATE_LIMIT_SECONDS", 0.0)
     monkeypatch.setattr("django.conf.settings.HERE_ENABLED", False)
     monkeypatch.setattr("django.conf.settings.HERE_API_KEY", "")
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", False)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "")
     cache.clear()
     yield
     cache.clear()
@@ -746,3 +748,224 @@ def test_geocodificar_here_error_no_rompe(client):
         }, content_type="application/json")
     assert res.status_code == 404
     assert res.json()["error"]["sugerencias"][0]["direccion"].startswith("780")
+
+
+def _puntos_ruta():
+    return [
+        {"lat": -27.784, "lng": -64.267},
+        {"lat": -27.782, "lng": -64.265},
+    ]
+
+
+def _route_payload():
+    return {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "properties": {
+                    "summary": {"distance": 2450.4, "duration": 1800},
+                },
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[-64.267, -27.784], [-64.265, -27.782]],
+                },
+            }
+        ],
+    }
+
+
+def _mock_route_response(payload=None, status_code=200):
+    mock = MagicMock()
+    mock.status_code = status_code
+    mock.json.return_value = payload if payload is not None else _route_payload()
+    mock.text = "SECRET-PROVIDER-BODY"
+    return mock
+
+
+def test_ruta_ok(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "test-key")
+    with patch("geocodificacion.services.routing.requests.post",
+               return_value=_mock_route_response()) as post:
+        res = client.post("/api/ruta/", {
+            "puntos": _puntos_ruta(),
+            "perfil": "walking",
+        }, content_type="application/json")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["distancia_metros"] == 2450.4
+    assert body["duracion_segundos"] == 1800
+    assert body["orden"] == [0, 1]
+    assert body["ruta"]["features"][0]["geometry"]["type"] == "LineString"
+    args, kwargs = post.call_args
+    assert args[0].endswith("/foot-walking/geojson")
+    assert kwargs["headers"]["Authorization"] == "test-key"
+    assert kwargs["json"]["coordinates"] == [[-64.267, -27.784], [-64.265, -27.782]]
+
+
+def test_ruta_usa_perfil_driving(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "test-key")
+    with patch("geocodificacion.services.routing.requests.post",
+               return_value=_mock_route_response()) as post:
+        res = client.post("/api/ruta/", {
+            "puntos": _puntos_ruta(),
+            "perfil": "driving",
+        }, content_type="application/json")
+    assert res.status_code == 200
+    assert post.call_args.args[0].endswith("/driving-car/geojson")
+
+
+def test_ruta_cachea_la_misma_consulta(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "test-key")
+    with patch("geocodificacion.services.routing.requests.post",
+               return_value=_mock_route_response()) as post:
+        client.post("/api/ruta/", {"puntos": _puntos_ruta()}, content_type="application/json")
+        client.post("/api/ruta/", {"puntos": _puntos_ruta()}, content_type="application/json")
+    assert post.call_count == 1
+
+
+def test_ruta_volver_al_inicio(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "test-key")
+    with patch("geocodificacion.services.routing.requests.post",
+               return_value=_mock_route_response()) as post:
+        res = client.post("/api/ruta/", {
+            "puntos": _puntos_ruta(),
+            "volver_al_inicio": True,
+        }, content_type="application/json")
+    assert res.status_code == 200
+    assert res.json()["orden"] == [0, 1, 0]
+    coords = post.call_args.kwargs["json"]["coordinates"]
+    assert coords == [[-64.267, -27.784], [-64.265, -27.782], [-64.267, -27.784]]
+
+
+def test_ruta_optimizar_pendiente(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "test-key")
+    with patch("geocodificacion.services.routing.requests.post") as post:
+        res = client.post("/api/ruta/", {
+            "puntos": _puntos_ruta(),
+            "optimizar": True,
+        }, content_type="application/json")
+    assert res.status_code == 400
+    assert res.json()["error"]["codigo"] == "optimizacion_no_disponible"
+    post.assert_not_called()
+
+
+def test_ruta_sin_configurar(client):
+    with patch("geocodificacion.services.routing.requests.post") as post:
+        res = client.post("/api/ruta/", {"puntos": _puntos_ruta()}, content_type="application/json")
+    assert res.status_code == 503
+    assert res.json()["error"]["codigo"] == "routing_no_configurado"
+    post.assert_not_called()
+
+
+def test_ruta_sin_api_key(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    with patch("geocodificacion.services.routing.requests.post") as post:
+        res = client.post("/api/ruta/", {"puntos": _puntos_ruta()}, content_type="application/json")
+    assert res.status_code == 503
+    post.assert_not_called()
+
+
+def test_ruta_perfil_invalido(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "test-key")
+    with patch("geocodificacion.services.routing.requests.post") as post:
+        res = client.post("/api/ruta/", {
+            "puntos": _puntos_ruta(),
+            "perfil": "flying",
+        }, content_type="application/json")
+    assert res.status_code == 400
+    assert "perfil" in res.json()["error"]["campos"]
+    post.assert_not_called()
+
+
+def test_ruta_pocos_puntos(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "test-key")
+    res = client.post("/api/ruta/", {
+        "puntos": [{"lat": -27.78, "lng": -64.26}],
+    }, content_type="application/json")
+    assert res.status_code == 400
+
+
+def test_ruta_demasiados_puntos(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "test-key")
+    puntos = [{"lat": -27.78, "lng": -64.26} for _ in range(21)]
+    res = client.post("/api/ruta/", {"puntos": puntos}, content_type="application/json")
+    assert res.status_code == 400
+
+
+def test_ruta_punto_fuera_de_argentina(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "test-key")
+    res = client.post("/api/ruta/", {
+        "puntos": [{"lat": 0, "lng": 0}, {"lat": -27.78, "lng": -64.26}],
+    }, content_type="application/json")
+    assert res.status_code == 400
+    assert "puntos" in res.json()["error"]["campos"]
+
+
+def test_ruta_proveedor_http_error(client, monkeypatch, caplog):
+    import logging
+    caplog.set_level(logging.WARNING, logger="geocodificacion.services.routing")
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "test-key")
+    with patch("geocodificacion.services.routing.requests.post",
+               return_value=_mock_route_response(status_code=500)):
+        res = client.post("/api/ruta/", {"puntos": _puntos_ruta()}, content_type="application/json")
+    assert res.status_code == 502
+    assert res.json()["error"]["codigo"] == "routing_no_disponible"
+    assert "SECRET-PROVIDER-BODY" not in caplog.text
+
+
+def test_ruta_proveedor_json_invalido(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "test-key")
+    mock = _mock_route_response()
+    mock.json.side_effect = ValueError("bad json")
+    with patch("geocodificacion.services.routing.requests.post", return_value=mock):
+        res = client.post("/api/ruta/", {"puntos": _puntos_ruta()}, content_type="application/json")
+    assert res.status_code == 502
+
+
+def test_ruta_proveedor_sin_linea(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "test-key")
+    with patch("geocodificacion.services.routing.requests.post",
+               return_value=_mock_route_response({"features": []})):
+        res = client.post("/api/ruta/", {"puntos": _puntos_ruta()}, content_type="application/json")
+    assert res.status_code == 502
+
+
+def test_ruta_suma_segmentos_si_falta_summary(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "test-key")
+    payload = _route_payload()
+    payload["features"][0]["properties"] = {
+        "segments": [
+            {"distance": 100.5, "duration": 10},
+            {"distance": 200.5, "duration": 20},
+        ]
+    }
+    with patch("geocodificacion.services.routing.requests.post",
+               return_value=_mock_route_response(payload)):
+        res = client.post("/api/ruta/", {"puntos": _puntos_ruta()}, content_type="application/json")
+    assert res.status_code == 200
+    assert res.json()["distancia_metros"] == 301.0
+    assert res.json()["duracion_segundos"] == 30
+
+
+def test_ruta_proveedor_timeout(client, monkeypatch):
+    import requests as req
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "test-key")
+    with patch("geocodificacion.services.routing.requests.post",
+               side_effect=req.Timeout("timeout")):
+        res = client.post("/api/ruta/", {"puntos": _puntos_ruta()}, content_type="application/json")
+    assert res.status_code == 502

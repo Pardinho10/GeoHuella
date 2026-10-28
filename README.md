@@ -34,6 +34,15 @@ CORS_ALLOWED_ORIGINS=http://localhost:5174
 
 Los archivos `.env` locales no se versionan. Cambiar `DJANGO_SECRET_KEY` antes de un entorno no local y revisar `DEBUG`, `ALLOWED_HOSTS`, el límite de solicitudes y las condiciones de uso de Georef/OpenFreeMap.
 
+Para habilitar rutas, crear una API key gratuita en <https://account.heigit.org/> y configurar en `backend/.env`:
+
+```dotenv
+ROUTING_ENABLED=true
+ROUTING_API_KEY=tu_api_key
+```
+
+La key queda solo en el backend.
+
 ## Instalar dependencias
 
 Desde la raíz, instalar el coordinador de procesos (Concurrently) y las dependencias frontend/backend:
@@ -89,6 +98,7 @@ El frontend usa el backend real por defecto (`VITE_USAR_MOCK=false`, `VITE_API_B
 - Provincias: <http://localhost:8001/api/provincias/> consulta Georef y devuelve la lista cacheada.
 - El formulario Dirección permite revisar y agregar candidatos encontrados.
 - El formulario Coordenadas agrega un punto y consulta la unidad territorial.
+- `POST /api/ruta/` calcula rutas en orden fijo si `ROUTING_ENABLED=true` y hay API key; sin configurar responde 503.
 - Los elementos se conservan en `localStorage`; no se guardan en Django.
 
 Para pruebas aisladas, ejecutar `pytest` dentro de `backend/` y `npm test` dentro de `frontend/`. Las pruebas simulan Georef y no dependen de llamadas externas.
@@ -100,7 +110,7 @@ Para pruebas aisladas, ejecutar `pytest` dentro de `backend/` y `npm test` dentr
 - `docs/contrato-api.md`: contrato compartido de API.
 - `docs/notas-georef.md`: respuestas observadas de la API oficial.
 - `docs/especificacion-funcional.md`: alcance y checklist de producto.
-- `docs/rutas-propuesta.md`: contrato tentativo para unir huellas con rutas.
+- `docs/rutas-propuesta.md`: diseño y estado de la implementación de rutas.
 
 ## Limitaciones conocidas
 

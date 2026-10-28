@@ -2,19 +2,11 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { cargarElementos, guardarElementos, cargarContador, guardarContador, colorSeguro } from './lib/storage.js';
 import { agregarCandidatos, parsearCoordenada, parsearParPegado, enRangoArgentina } from './lib/elementos.js';
 import { obtenerProvincias, geocodificar, ubicarCoordenadas } from './api';
+import IconHuella from './components/IconHuella.jsx';
 
 const Mapa = React.lazy(() => import('./components/Mapa.jsx'));
 
 const MAX_SUGERENCIAS = 5;
-
-function IconPin({ size = 18 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-      <circle cx="12" cy="10" r="2.4" fill="currentColor" />
-    </svg>
-  );
-}
 
 function IconChevron({ open }) {
   return (
@@ -312,7 +304,7 @@ export default function App() {
           aria-label="Expandir panel"
           aria-expanded="false"
         >
-          <IconPin size={19} />
+          <IconHuella size={19} />
         </button>
       )}
 
@@ -321,10 +313,10 @@ export default function App() {
           <header className="panel-header">
             <div className="brand-row">
               <div className="brand">
-                <span className="brand-mark" aria-hidden="true"><IconPin size={18} /></span>
+                <span className="brand-mark" aria-hidden="true"><IconHuella size={20} /></span>
                 <div>
-                  <span className="eyebrow">Piloto Georef</span>
-                  <h1>Atlas Argentino</h1>
+                  <span className="eyebrow">Cada lugar deja una huella</span>
+                  <h1>GeoHuella</h1>
                 </div>
               </div>
               <button
@@ -337,7 +329,7 @@ export default function App() {
                 <IconChevron open />
               </button>
             </div>
-            <p className="panel-subtitle">Encontrá una dirección, compará coincidencias y guardá tus puntos.</p>
+            <p className="panel-subtitle">Encontrá una dirección, compará coincidencias y guardá tus lugares.</p>
             <div className="stats" aria-label="Resumen">
               <span className="stat"><b>{elementos.length}</b> {elementos.length === 1 ? 'punto de 200' : 'puntos de 200'}</span>
               <span className="stat"><b>{contador}</b> {contador === 1 ? 'nombre usado' : 'nombres usados'}</span>
@@ -647,7 +639,7 @@ export default function App() {
 
               {elementos.length === 0 ? (
                 <div className="empty-state">
-                  <span className="empty-icon" aria-hidden="true"><IconPin size={20} /></span>
+                  <span className="empty-icon" aria-hidden="true"><IconHuella size={20} /></span>
                   <p>Todavía no hay puntos.</p>
                   <span>Buscá una dirección o ingresá coordenadas para empezar.</span>
                 </div>

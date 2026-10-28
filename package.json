@@ -2,7 +2,7 @@
   "name": "piloto-mapa",
   "version": "0.1.0",
   "private": true,
-  "description": "Scripts raíz para ejecutar conjuntamente backend y frontend del piloto",
+  "description": "Scripts raíz para ejecutar conjuntamente backend y frontend de GeoHuella",
   "scripts": {
     "dev:backend": "cd backend && .venv/bin/python manage.py runserver localhost:8001",
     "dev:frontend": "npm --prefix frontend run dev -- --host localhost --port 5174",

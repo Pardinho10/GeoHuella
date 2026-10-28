@@ -6,6 +6,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { colorSeguro } from '../lib/storage.js';
 import { offsetsPorCoordenada } from '../lib/marcadores.js';
 import { ajustarVista } from '../lib/vista.js';
+import IconHuella from './IconHuella.jsx';
 
 setWorkerUrl(workerUrl);
 
@@ -15,7 +16,11 @@ const MAX_ZOOM = 20;
 
 function Pin({ color, variant = 'element', selected = false, label }) {
   const classes = ['map-pin', `map-pin--${variant}`, selected ? 'is-selected' : ''].filter(Boolean).join(' ');
-  return <span className={classes} style={{ '--pin': colorSeguro(color) }} title={label} />;
+  return (
+    <span className={classes} style={{ '--pin': colorSeguro(color) }} title={label}>
+      <IconHuella size={variant === 'element' ? 18 : 16} />
+    </span>
+  );
 }
 
 function ControlVista({ foco, fitAll, elementos }) {

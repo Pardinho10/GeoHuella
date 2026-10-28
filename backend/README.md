@@ -1,4 +1,4 @@
-# Backend — Piloto Mapa de Argentina con Georef
+# Backend — GeoHuella
 
 API Django + Django REST Framework que actúa como proxy/cache de la API pública de Georef y usa Nominatim (OpenStreetMap) y, opcionalmente, HERE Geocoding & Search como respaldos cuando faltan coordenadas.
 

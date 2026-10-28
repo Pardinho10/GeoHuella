@@ -1,16 +1,16 @@
-# Especificación funcional — Piloto Mapa de Argentina con Georef
+# Especificación funcional — GeoHuella
 
 ## Objetivo y alcance
 
 Single page educativa, independiente, con mapa MapLibre GL JS a pantalla completa y panel flotante para crear elementos genéricos de mapa. Cada elemento es exclusivamente un punto geográfico; no modela conceptos de otros sistemas. La búsqueda por dirección puede devolver varios candidatos, que se previsualizan en el mapa y se agregan solo después de que el usuario elige uno o varios. También se pueden ingresar coordenadas directamente.
 
-No incluye autenticación, base de datos de negocio, edición de elementos guardados, importación/exportación, rutas, tiempo real, geolocalización, internacionalización, Docker ni despliegue.
+No incluye autenticación, base de datos de negocio, edición de elementos guardados, importación/exportación, rutas, tiempo real, geolocalización, internacionalización, Docker ni despliegue. Las rutas están documentadas como propuesta futura en [`rutas-propuesta.md`](rutas-propuesta.md), sin implementar todavía.
 
 ## Decisiones de producto
 
 | Tema | Decisión |
 |---|---|
-| Backend | Django + Django REST Framework; proxy Georef con fallback Nominatim (OpenStreetMap) cuando Georef no ofrece coordenadas |
+| Backend | Django + Django REST Framework; proxy Georef con fallback Nominatim (OpenStreetMap) y, opcionalmente, HERE cuando Georef no ofrece coordenadas |
 | Frontend | React + Vite + JavaScript + Bootstrap 5 / react-bootstrap |
 | Mapa | MapLibre GL JS + tiles vectoriales de OpenFreeMap (estilo oscuro, sin API key; datos OpenStreetMap/OpenMapTiles) |
 | Persistencia | `localStorage`, sin base de datos de negocio |
@@ -20,6 +20,7 @@ No incluye autenticación, base de datos de negocio, edición de elementos guard
 | Nombre automático | Si se agrega un elemento sin nombre, asignar `Elemento N`; el contador solo sube al crear un elemento con nombre automático, no al buscar, no para nombres personalizados y nunca baja al borrar |
 | Coordenadas | En campos separados admitir punto o coma decimal. En pegado de par admitir `lat, lng` con puntos decimales o `lat; lng` con comas decimales; sin separadores de miles |
 | Puntos superpuestos | Aplicar desplazamiento visual pequeño en píxeles a marcadores coincidentes mediante `offset` de MapLibre; no alterar coordenadas guardadas ni mostradas. El desplazamiento debe recalcularse de modo estable según zoom y conjunto de puntos; la tarjeta y el ajuste de vista usan siempre la posición geográfica real |
+| Marca | GeoHuella; cada punto se representa con una huella de perro SVG. Lema: “Cada lugar deja una huella”. |
 | Estilo | Panel cálido editorial sobre mapa oscuro, tipografía Poppins y paleta `#251605`, `#c57b57`, `#f1ab86`, `#f7dba7`, `#9cafb7`; interfaz en español |
 | Versiones | Estables vigentes fijadas en archivos de dependencias |
 | Pruebas | Backend pytest + pytest-django; frontend Vitest + React Testing Library |

@@ -1,6 +1,10 @@
-# Piloto: Mapa de Argentina con Georef
+# GeoHuella
 
-Proyecto independiente y educativo para aprender React, MapLibre GL JS y la API Georef. Permite geocodificar direcciones, revisar varios candidatos y guardar elementos genéricos en un mapa. Sin autenticación ni base de datos de negocio.
+**Cada lugar deja una huella.**
+
+Mapa de lugares para buscar direcciones, comparar coincidencias y guardar puntos. Proyecto independiente y educativo para aprender React, MapLibre GL JS y las APIs Georef/OpenStreetMap/HERE. Sin autenticación ni base de datos de negocio.
+
+> Nombre de producto: **GeoHuella**. Carpeta y repositorio interno: `piloto-mapa`.
 
 ## Estado
 
@@ -96,6 +100,7 @@ Para pruebas aisladas, ejecutar `pytest` dentro de `backend/` y `npm test` dentr
 - `docs/contrato-api.md`: contrato compartido de API.
 - `docs/notas-georef.md`: respuestas observadas de la API oficial.
 - `docs/especificacion-funcional.md`: alcance y checklist de producto.
+- `docs/rutas-propuesta.md`: contrato tentativo para unir huellas con rutas.
 
 ## Limitaciones conocidas
 

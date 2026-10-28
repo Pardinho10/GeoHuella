@@ -1,4 +1,4 @@
-# Frontend — Atlas Argentino (Piloto Georef)
+# Frontend — GeoHuella
 
 SPA en React + Vite (JavaScript), Bootstrap 5 y MapLibre GL JS con tiles vectoriales de OpenFreeMap. Interfaz en español, con panel cálido editorial sobre mapa oscuro, tipografía Poppins y la paleta `#251605`, `#c57b57`, `#f1ab86`, `#f7dba7`, `#9cafb7`.
 

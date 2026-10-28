@@ -796,36 +796,32 @@ button, input, select, textarea { font-family: inherit; }
 
 .map-pin {
   position: relative;
-  display: block;
-  width: 18px;
-  height: 18px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: #fff9ed;
   background: var(--pin);
   border: 2px solid #fff9ed;
   border-radius: 50%;
   box-shadow:
     0 0 0 3px rgba(37, 22, 5, 0.36),
-    0 0 10px rgba(197, 123, 87, 0.32);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+    0 3px 9px rgba(37, 22, 5, 0.38);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
 }
 
-.map-pin::after {
-  content: '';
-  position: absolute;
-  inset: 4px;
-  background: rgba(255, 249, 237, 0.5);
-  border-radius: 50%;
+.map-pin svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  filter: drop-shadow(0 1px 1px rgba(37, 22, 5, 0.28));
 }
 
 .map-pin--preview {
-  background: transparent;
-  border: 2px solid var(--pin);
+  color: var(--pin);
+  background: rgba(37, 22, 5, 0.72);
+  border: 1.5px solid var(--pin);
   box-shadow: 0 0 0 3px rgba(37, 22, 5, 0.26);
-}
-
-.map-pin--preview::after {
-  inset: 5px;
-  background: var(--pin);
-  opacity: 0.45;
 }
 
 .map-pin--preview.is-selected {
@@ -833,16 +829,15 @@ button, input, select, textarea { font-family: inherit; }
   box-shadow:
     0 0 0 3px rgba(37, 22, 5, 0.3),
     0 0 10px rgba(197, 123, 87, 0.52);
-  transform: scale(1.08);
+  transform: scale(1.12);
 }
 
 .map-pin--suggestion {
-  background: rgba(37, 22, 5, 0.52);
-  border: 2px dashed var(--tangerine);
+  color: var(--tangerine);
+  background: rgba(37, 22, 5, 0.64);
+  border: 1.5px dashed var(--tangerine);
   box-shadow: 0 0 8px rgba(241, 171, 134, 0.42);
 }
-
-.map-pin--suggestion::after { background: var(--tangerine); }
 
 .map-pin--suggestion.is-selected {
   border-style: solid;
@@ -850,7 +845,7 @@ button, input, select, textarea { font-family: inherit; }
   box-shadow:
     0 0 0 3px rgba(37, 22, 5, 0.3),
     0 0 12px rgba(197, 123, 87, 0.55);
-  transform: scale(1.08);
+  transform: scale(1.12);
 }
 
 .map-toggle {

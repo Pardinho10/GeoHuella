@@ -145,7 +145,8 @@ Calcula una ruta por calles entre 2 y 20 huellas. Requiere `ROUTING_ENABLED=true
   ],
   "perfil": "walking",
   "volver_al_inicio": false,
-  "optimizar": false
+  "optimizar": false,
+  "fin": null
 }
 ```
 
@@ -155,6 +156,7 @@ Calcula una ruta por calles entre 2 y 20 huellas. Requiere `ROUTING_ENABLED=true
 | `perfil` | string | no | `walking` (default), `driving` o `cycling`. |
 | `optimizar` | boolean | no | Default `false`. Si es `true`, VROOM reordena las huellas; el primer elemento de `puntos` se mantiene como inicio. El frontend permite elegir cuál es. |
 | `volver_al_inicio` | boolean | no | Default `false`. Si es `true`, agrega el primer punto al final del recorrido. Funciona con y sin optimización. |
+| `fin` | integer o null | no | Índice 0-based del punto final en `puntos`; debe ser distinto de `0`. Si se indica, el recorrido termina en esa huella. No se puede combinar con `volver_al_inicio=true`. |
 
 `200 OK`
 
@@ -180,8 +182,9 @@ Calcula una ruta por calles entre 2 y 20 huellas. Requiere `ROUTING_ENABLED=true
 ```
 
 - `ruta` es GeoJSON listo para MapLibre.
-- `orden` contiene índices del array `puntos` en el orden recorrido. Con `optimizar=false` es la identidad; con `optimizar=true` puede cambiar, conservando `0` como inicio. Con `volver_al_inicio=true`, el índice `0` se repite al final.
+- `orden` contiene índices del array `puntos` en el orden recorrido. Con `optimizar=false` respeta el orden salvo que `fin` mueva ese punto al final; con `optimizar=true` puede cambiar, conservando `0` como inicio y `fin` como final. Con `volver_al_inicio=true`, el índice `0` se repite al final.
 - La ruta y el orden optimizado se cachean durante `ROUTING_CACHE_TTL` segundos y no se persisten en `localStorage`.
+- El frontend permite elegir inicio y final; envía el inicio primero y el final al final del arreglo, con `fin` apuntando a la última posición.
 - Solo se envían coordenadas y perfil al proveedor; no se envían nombres de lugares.
 
 ## 6. Errores uniformes
@@ -199,7 +202,7 @@ Todos los errores usan esta envoltura JSON:
 
 | HTTP | `codigo` | Uso |
 |---|---|---|
-| 400 | `solicitud_invalida` | JSON mal formado, campos faltantes o validación de campos. |
+| 400 | `solicitud_invalida` | JSON mal formado, campos faltantes o validación de campos, incluido un `fin` fuera de rango o combinado con `volver_al_inicio`. |
 | 404 | `no_encontrada` | Georef y el fallback exacto no hallaron ubicación; puede incluir opcionalmente `error.sugerencias` con hasta 5 alturas cercanas de la misma calle/localidad/provincia. |
 | 422 | `fuera_de_rango` | Coordenadas fuera de la caja geográfica acordada para Argentina. |
 | 429 | `demasiadas_solicitudes` | Límite de solicitudes del backend. |

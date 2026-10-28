@@ -36,7 +36,8 @@ Content-Type: application/json
   ],
   "perfil": "walking",
   "optimizar": false,
-  "volver_al_inicio": false
+  "volver_al_inicio": false,
+  "fin": null
 }
 ```
 
@@ -48,6 +49,7 @@ Campos:
 | `perfil` | string | no | `walking` (default), `driving` o `cycling`. |
 | `optimizar` | boolean | no | Si es `true`, el proveedor puede reordenar los puntos; el primero del arreglo es el inicio. Default `false`. |
 | `volver_al_inicio` | boolean | no | Agrega el primer punto al final. Aplica con y sin optimización. Default `false`. |
+| `fin` | integer o null | no | Índice del punto final distinto de `0`; excluyente con `volver_al_inicio`. |
 
 ### Response 200
 
@@ -74,7 +76,7 @@ Campos:
 
 - `ruta` es GeoJSON listo para MapLibre.
 - `orden` contiene índices del array `puntos` en el orden efectivamente recorrido.
-- Con `optimizar=false`, `orden` es la identidad `[0, 1, 2, ...]`. Con `optimizar=true`, el orden puede cambiar y `0` se mantiene como inicio.
+- Con `optimizar=false`, `orden` respeta el orden salvo que `fin` mueva el final al último lugar. Con `optimizar=true`, el orden puede cambiar y `0` se mantiene como inicio. Si hay `fin`, ese índice queda al final.
 - `distancia_metros` y `duracion_segundos` son números finitos y no negativos.
 - La ruta no se persiste en localStorage; se calcula bajo demanda.
 
@@ -103,13 +105,14 @@ Formato de error, consistente con el resto de la API:
 
 1. La persona activa el modo ruta y selecciona entre 2 y 20 huellas.
 2. Elige el punto de inicio; ese punto se envía primero en `puntos`.
-3. Elige perfil: caminando, auto o bicicleta.
-4. Puede activar “Optimizar orden” y “Volver al inicio”.
-5. Al confirmar, se llama a `POST /api/ruta/`.
-6. La línea se dibuja en MapLibre con una fuente GeoJSON y una capa `line`.
-7. Se muestra distancia, duración e inicio.
-8. Se ajusta la vista a la ruta completa.
-9. “Quitar ruta” elimina la línea y el resumen, sin borrar las huellas.
+3. Puede elegir un punto final, que se envía al final con `fin`.
+4. Elige perfil: caminando, auto o bicicleta.
+5. Puede activar “Optimizar orden” y “Volver al inicio”.
+6. Al confirmar, se llama a `POST /api/ruta/`.
+7. La línea se dibuja en MapLibre con una fuente GeoJSON y una capa `line`.
+8. Se muestra distancia, duración, inicio y final.
+9. Se ajusta la vista a la ruta completa.
+10. “Quitar ruta” elimina la línea y el resumen, sin borrar las huellas.
 
 La línea debe distinguirse de los marcadores y respetar el tema visual. Las huellas siguen siendo la fuente de verdad; la ruta es una visualización temporal.
 

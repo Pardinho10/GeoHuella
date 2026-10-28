@@ -63,6 +63,25 @@ describe('api client', () => {
     });
   });
 
+  it('calcularRuta envía el punto final cuando se indica', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ruta: { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'LineString', coordinates: [[1, 2], [3, 4]] } }] },
+        distancia_metros: 100,
+        duracion_segundos: 60,
+        orden: [0, 1],
+      }),
+    }));
+    await calcularRuta({
+      puntos: [{ lat: 2, lng: 1 }, { lat: 4, lng: 3 }],
+      fin: 1,
+    });
+    const [, options] = fetch.mock.calls[0];
+    expect(JSON.parse(options.body).fin).toBe(1);
+    expect(JSON.parse(options.body).optimizar).toBe(false);
+  });
+
   it('calcularRuta propaga el error del backend', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: false,

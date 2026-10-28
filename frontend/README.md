@@ -29,7 +29,7 @@ npm run build
 - Panel con cabecera de marca, resumen de puntos, pestañas segmentadas, validación bajo cada campo y estados de carga.
 - Resultados de dirección y sugerencias cercanas se muestran en tarjetas; las cercanas están marcadas como aproximadas y solo se agregan tras selección explícita.
 - Marcadores cíclicos de la paleta con resplandor bajo. Los puntos coincidentes se separan visualmente sin alterar sus coordenadas.
-- Rutas: el botón “Ruta” permite seleccionar entre 2 y 20 huellas, elegir el punto de inicio, caminando/auto/bici, optimizar el orden, ida y vuelta y trazar una línea por calles con distancia y duración. La ruta es temporal y no se guarda.
+- Rutas: el botón “Ruta” permite seleccionar entre 2 y 20 huellas, elegir inicio y final, caminando/auto/bici, optimizar el orden, ida y vuelta y trazar una línea por calles con distancia y duración. La ruta es temporal y no se guarda.
 - Tooltip nativo al pasar el cursor y popup al hacer clic, con nombre, dirección y coordenadas a 6 decimales. El mapa vectorial permite zoom hasta 20; OpenFreeMap publica datos hasta zoom 14 y MapLibre los amplía sin devolver tiles de error.
 - Panel colapsable; en móvil se convierte en hoja inferior y los controles de zoom se reubican por encima.
 

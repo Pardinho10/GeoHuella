@@ -765,6 +765,15 @@ def _puntos_ruta_3():
     ]
 
 
+def _puntos_ruta_4():
+    return [
+        {"lat": -27.784, "lng": -64.267},
+        {"lat": -27.782, "lng": -64.265},
+        {"lat": -27.780, "lng": -64.270},
+        {"lat": -27.775, "lng": -64.260},
+    ]
+
+
 def _vroom_payload(jobs=(1, 2), unassigned=0):
     steps = [{"type": "start", "location": [-64.267, -27.784]}]
     for job in jobs:
@@ -888,6 +897,76 @@ def test_ruta_optimizar_ok(client, monkeypatch):
     assert llamadas[1].kwargs["json"]["coordinates"] == [
         [-64.267, -27.784], [-64.27, -27.78], [-64.265, -27.782],
     ]
+
+
+def test_ruta_orden_fijo_con_fin(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "test-key")
+    with patch("geocodificacion.services.routing.requests.post",
+               return_value=_mock_route_response()) as post:
+        res = client.post("/api/ruta/", {
+            "puntos": _puntos_ruta_3(),
+            "fin": 1,
+        }, content_type="application/json")
+    assert res.status_code == 200
+    assert res.json()["orden"] == [0, 2, 1]
+    assert post.call_args.kwargs["json"]["coordinates"] == [
+        [-64.267, -27.784], [-64.27, -27.78], [-64.265, -27.782],
+    ]
+
+
+def test_ruta_optimizar_con_fin(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "test-key")
+    with patch(
+        "geocodificacion.services.routing.requests.post",
+        side_effect=[
+            _mock_route_response(_vroom_payload((2, 1))),
+            _mock_route_response(),
+        ],
+    ) as post:
+        res = client.post("/api/ruta/", {
+            "puntos": _puntos_ruta_4(),
+            "optimizar": True,
+            "fin": 3,
+        }, content_type="application/json")
+    assert res.status_code == 200
+    assert res.json()["orden"] == [0, 2, 1, 3]
+    vehiculo = post.call_args_list[0].kwargs["json"]["vehicles"][0]
+    assert vehiculo["end"] == [-64.26, -27.775]
+    assert [j["id"] for j in post.call_args_list[0].kwargs["json"]["jobs"]] == [1, 2]
+    assert post.call_args_list[1].kwargs["json"]["coordinates"] == [
+        [-64.267, -27.784], [-64.27, -27.78], [-64.265, -27.782], [-64.26, -27.775],
+    ]
+
+
+def test_ruta_optimizar_con_fin_y_sin_intermedios(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "test-key")
+    with patch("geocodificacion.services.routing.requests.post",
+               return_value=_mock_route_response()) as post:
+        res = client.post("/api/ruta/", {
+            "puntos": _puntos_ruta(),
+            "optimizar": True,
+            "fin": 1,
+        }, content_type="application/json")
+    assert res.status_code == 200
+    assert res.json()["orden"] == [0, 1]
+    assert post.call_count == 1
+    assert post.call_args.args[0].endswith("/foot-walking/geojson")
+
+
+def test_ruta_fin_invalido(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "test-key")
+    for body in (
+        {"puntos": _puntos_ruta_3(), "fin": 0},
+        {"puntos": _puntos_ruta_3(), "fin": 3},
+        {"puntos": _puntos_ruta_3(), "fin": 1, "volver_al_inicio": True},
+    ):
+        res = client.post("/api/ruta/", body, content_type="application/json")
+        assert res.status_code == 400
+        assert "fin" in res.json()["error"]["campos"]
 
 
 def test_ruta_optimizar_volver_al_inicio(client, monkeypatch):

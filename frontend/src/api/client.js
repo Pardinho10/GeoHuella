@@ -56,7 +56,7 @@ export async function ubicarCoordenadas(lat, lng) {
 }
 
 
-export async function calcularRuta({ puntos, perfil = 'walking', volver_al_inicio = false, optimizar = false } = {}) {
+export async function calcularRuta({ puntos, perfil = 'walking', volver_al_inicio = false, optimizar = false, fin = null } = {}) {
   const data = await request('/api/ruta/', {
     method: 'POST',
     body: JSON.stringify({
@@ -64,6 +64,7 @@ export async function calcularRuta({ puntos, perfil = 'walking', volver_al_inici
       perfil,
       volver_al_inicio,
       optimizar: Boolean(optimizar),
+      ...(fin === null || fin === undefined ? {} : { fin }),
     }),
   });
   if (!Array.isArray(data?.ruta?.features) || data.ruta.features.length === 0) {

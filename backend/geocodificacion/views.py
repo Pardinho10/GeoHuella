@@ -166,6 +166,7 @@ def ruta(request):
             data["perfil"],
             data["volver_al_inicio"],
             data["optimizar"],
+            data["fin"],
         )
     except RoutingServiceError:
         return Response(

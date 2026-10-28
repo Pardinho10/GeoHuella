@@ -80,6 +80,22 @@ class RutaSerializer(serializers.Serializer):
     )
     optimizar = serializers.BooleanField(default=False)
     volver_al_inicio = serializers.BooleanField(default=False)
+    fin = serializers.IntegerField(required=False, allow_null=True, default=None)
+
+    def validate_fin(self, value):
+        if isinstance(value, bool):
+            raise serializers.ValidationError("Debe ser un índice entero.")
+        return value
+
+    def validate(self, attrs):
+        puntos = attrs["puntos"]
+        fin = attrs.get("fin")
+        if fin is not None:
+            if fin < 1 or fin >= len(puntos):
+                raise serializers.ValidationError({"fin": "El punto final debe ser una huella distinta del inicio."})
+            if attrs.get("volver_al_inicio"):
+                raise serializers.ValidationError({"fin": "Elegí un punto final o volver al inicio, no ambos."})
+        return attrs
 
     def validate_puntos(self, value):
         for punto in value:

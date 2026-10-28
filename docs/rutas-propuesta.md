@@ -46,7 +46,7 @@ Campos:
 |---|---|---|---|
 | `puntos` | array | sí | Entre 2 y 20 puntos con `lat`/`lng` finitos y dentro de Argentina. |
 | `perfil` | string | no | `walking` (default), `driving` o `cycling`. |
-| `optimizar` | boolean | no | Si es `true`, el proveedor puede reordenar los puntos. Default `false`. |
+| `optimizar` | boolean | no | Si es `true`, el proveedor puede reordenar los puntos; el primero del arreglo es el inicio. Default `false`. |
 | `volver_al_inicio` | boolean | no | Agrega el primer punto al final. Aplica con y sin optimización. Default `false`. |
 
 ### Response 200
@@ -102,13 +102,14 @@ Formato de error, consistente con el resto de la API:
 ## Comportamiento en el frontend
 
 1. La persona activa el modo ruta y selecciona entre 2 y 20 huellas.
-2. Elige perfil: caminando, auto o bicicleta.
-3. Puede activar “Optimizar orden”.
-4. Al confirmar, se llama a `POST /api/ruta/`.
-5. La línea se dibuja en MapLibre con una fuente GeoJSON y una capa `line`.
-6. Se muestra distancia y duración.
-7. Se ajusta la vista a la ruta completa.
-8. “Quitar ruta” elimina la línea y el resumen, sin borrar las huellas.
+2. Elige el punto de inicio; ese punto se envía primero en `puntos`.
+3. Elige perfil: caminando, auto o bicicleta.
+4. Puede activar “Optimizar orden” y “Volver al inicio”.
+5. Al confirmar, se llama a `POST /api/ruta/`.
+6. La línea se dibuja en MapLibre con una fuente GeoJSON y una capa `line`.
+7. Se muestra distancia, duración e inicio.
+8. Se ajusta la vista a la ruta completa.
+9. “Quitar ruta” elimina la línea y el resumen, sin borrar las huellas.
 
 La línea debe distinguirse de los marcadores y respetar el tema visual. Las huellas siguen siendo la fuente de verdad; la ruta es una visualización temporal.
 

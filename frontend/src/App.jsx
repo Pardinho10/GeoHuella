@@ -64,6 +64,7 @@ export default function App() {
   const [perfilRuta, setPerfilRuta] = useState('walking');
   const [volverInicio, setVolverInicio] = useState(false);
   const [optimizarRuta, setOptimizarRuta] = useState(false);
+  const [inicioRutaId, setInicioRutaId] = useState(null);
   const [ruta, setRuta] = useState(null);
   const [calculandoRuta, setCalculandoRuta] = useState(false);
   const [errorRuta, setErrorRuta] = useState(null);
@@ -94,6 +95,17 @@ export default function App() {
       setErrorRuta(null);
     }
   }, [elementos, ruta]);
+
+  useEffect(() => {
+    if (seleccionRuta.size === 0) {
+      if (inicioRutaId !== null) setInicioRutaId(null);
+      return;
+    }
+    if (!inicioRutaId || !seleccionRuta.has(inicioRutaId)) {
+      const primero = elementos.find((el) => seleccionRuta.has(el.id));
+      setInicioRutaId(primero?.id || null);
+    }
+  }, [elementos, inicioRutaId, seleccionRuta]);
 
   useEffect(() => {
     let activo = true;
@@ -316,8 +328,10 @@ export default function App() {
       setPerfilRuta(ruta.perfil || 'walking');
       setVolverInicio(Boolean(ruta.volverInicio));
       setOptimizarRuta(Boolean(ruta.optimizar));
+      setInicioRutaId(ruta.inicioId || ruta.ids[0] || null);
     } else {
       setSeleccionRuta(new Set());
+      setInicioRutaId(null);
     }
     setModoRuta(true);
     setRuta(null);
@@ -361,6 +375,12 @@ export default function App() {
     setErrorRuta(null);
   }
 
+  function cambiarInicioRuta(id) {
+    setInicioRutaId(id);
+    setRuta(null);
+    setErrorRuta(null);
+  }
+
   function limpiarRuta() {
     setRuta(null);
     setErrorRuta(null);
@@ -372,18 +392,21 @@ export default function App() {
       setErrorRuta('Elegí al menos 2 huellas para armar la ruta.');
       return;
     }
+    const inicio = elegidos.find((el) => el.id === inicioRutaId) || elegidos[0];
+    const ordenados = [inicio, ...elegidos.filter((el) => el.id !== inicio.id)];
     setCalculandoRuta(true);
     setErrorRuta(null);
     try {
       const data = await calcularRuta({
-        puntos: elegidos.map(({ lat, lng }) => ({ lat, lng })),
+        puntos: ordenados.map(({ lat, lng }) => ({ lat, lng })),
         perfil: perfilRuta,
         volver_al_inicio: volverInicio,
         optimizar: optimizarRuta,
       });
       setRuta({
         ...data,
-        ids: elegidos.map((el) => el.id),
+        ids: ordenados.map((el) => el.id),
+        inicioId: inicio.id,
         perfil: perfilRuta,
         volverInicio,
         optimizar: optimizarRuta,
@@ -396,6 +419,9 @@ export default function App() {
       setCalculandoRuta(false);
     }
   }
+
+  const elegidosRuta = elementos.filter((el) => seleccionRuta.has(el.id));
+  const nombreInicio = ruta ? elementos.find((el) => el.id === ruta.inicioId)?.nombre : null;
 
   return (
     <div className={`app-shell ${panelAbierto ? 'panel-abierto' : 'panel-cerrado'}`}>
@@ -814,7 +840,21 @@ export default function App() {
                     <span>Volver al inicio</span>
                   </label>
 
-                  <p className="ruta-nota">El recorrido empieza en la primera huella de la lista.</p>
+                  {elegidosRuta.length > 0 && (
+                    <label className="ruta-selector">
+                      <span>Punto de inicio</span>
+                      <select
+                        value={inicioRutaId || ''}
+                        onChange={(e) => cambiarInicioRuta(e.target.value)}
+                      >
+                        {elegidosRuta.map((el) => (
+                          <option key={el.id} value={el.id}>{el.nombre}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+
+                  <p className="ruta-nota">El recorrido empieza en el punto de inicio elegido; con optimización, VROOM ordena el resto.</p>
 
                   <div className="ruta-panel-foot">
                     <span className="ruta-count">{seleccionRuta.size} de {MAX_PUNTOS_RUTA}</span>
@@ -851,6 +891,7 @@ export default function App() {
                   </div>
                   <p className="ruta-resumen-meta">
                     {formatearDuracion(ruta.duracion_segundos)} · {ruta.ids.length} huellas
+                    {nombreInicio ? ` · inicio: ${nombreInicio}` : ''}
                     {ruta.optimizar ? ' · orden optimizado' : ''}
                     {ruta.volverInicio ? ' · ida y vuelta' : ''}
                   </p>

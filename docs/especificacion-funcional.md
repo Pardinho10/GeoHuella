@@ -44,7 +44,7 @@ Campos: Nombre opcional, latitud y longitud. Validar número y caja aproximada a
 
 ### Rutas
 
-El botón “Ruta” abre un panel para seleccionar entre 2 y 20 huellas. Cada fila de la lista se puede marcar o desmarcar; las filas seleccionadas se resaltan. Se elige perfil (Caminando, Auto o Bici) y, opcionalmente, “Optimizar orden” y “Volver al inicio”. Al optimizar, el primer punto de la lista se mantiene como inicio. “Trazar ruta” llama a `POST /api/ruta/` y muestra una línea GeoJSON sobre el mapa, distancia, duración y cantidad de huellas. La ruta se cachea en el backend y no se guarda en `localStorage`; “Quitar ruta” solo elimina la visualización. Si se elimina una huella usada por la ruta, la ruta se descarta. Los errores del proveedor se muestran dentro del panel de ruta.
+El botón “Ruta” abre un panel para seleccionar entre 2 y 20 huellas. Cada fila de la lista se puede marcar o desmarcar; las filas seleccionadas se resaltan. Se elige el punto de inicio, el perfil (Caminando, Auto o Bici) y, opcionalmente, “Optimizar orden” y “Volver al inicio”. El inicio elegido queda primero en el arreglo enviado; al optimizar, VROOM ordena el resto. “Trazar ruta” llama a `POST /api/ruta/` y muestra una línea GeoJSON sobre el mapa, distancia, duración y cantidad de huellas. La ruta se cachea en el backend y no se guarda en `localStorage`; “Quitar ruta” solo elimina la visualización. Si se elimina una huella usada por la ruta, la ruta se descarta. Los errores del proveedor se muestran dentro del panel de ruta.
 
 ### Mensajes y mapa
 
@@ -92,7 +92,7 @@ Pruebas obligatorias: validación, coma decimal y par pegado; lógica de lista (
 7. Tras recargar, lista y mapa recuperan elementos y contador monotónico.
 8. Zoom con controles, rueda y gestos; “Ver todos” ajusta extensión.
 9. Colores contrastan sobre el mapa oscuro; puntos coincidentes se ven y seleccionan.
-10. Ruta: seleccionar 2–20 huellas, probar los tres perfiles, optimización de orden, ida y vuelta, distancia/duración y “Quitar ruta”.
+10. Ruta: seleccionar 2–20 huellas, elegir el punto de inicio, probar los tres perfiles, optimización de orden, ida y vuelta, distancia/duración y “Quitar ruta”.
 11. Panel utilizable en móvil y escritorio.
 11. Tests de ambos proyectos pasan.
 12. Consola del navegador sin errores ni advertencias relevantes.

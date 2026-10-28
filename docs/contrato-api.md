@@ -153,7 +153,7 @@ Calcula una ruta por calles entre 2 y 20 huellas. Requiere `ROUTING_ENABLED=true
 |---|---|---|---|
 | `puntos` | array | sí | Entre 2 y 20 puntos con `lat`/`lng` numéricos, finitos y dentro de Argentina. |
 | `perfil` | string | no | `walking` (default), `driving` o `cycling`. |
-| `optimizar` | boolean | no | Default `false`. Si es `true`, VROOM reordena las huellas; el primer punto de la lista se mantiene como inicio. |
+| `optimizar` | boolean | no | Default `false`. Si es `true`, VROOM reordena las huellas; el primer elemento de `puntos` se mantiene como inicio. El frontend permite elegir cuál es. |
 | `volver_al_inicio` | boolean | no | Default `false`. Si es `true`, agrega el primer punto al final del recorrido. Funciona con y sin optimización. |
 
 `200 OK`

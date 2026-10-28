@@ -46,7 +46,7 @@ Endpoints base `/api/`:
 - Proveedor: HeiGIT/OpenRouteService Directions v2 (`ROUTING_BASE_URL`) y VROOM (`ROUTING_OPTIMIZATION_URL`, default `https://api.heigit.org/vroom/v0`).
 - Perfiles: `walking` → `foot-walking`, `driving` → `driving-car`, `cycling` → `cycling-regular`.
 - Límite actual: 2 a 20 puntos.
-- `optimizar=true` usa VROOM para reordenar; el primer punto seleccionado es el inicio.
+- `optimizar=true` usa VROOM para reordenar; el primer elemento del arreglo `puntos` es el inicio (el frontend permite elegirlo).
 - Cuotas gratuitas de referencia: Directions 2.000/día y optimización 500/día.
 - La ruta se cachea `ROUTING_CACHE_TTL` segundos; no se persiste.
 - Crear una API key gratuita en <https://account.heigit.org/> y configurarla solo en el backend. La key no se envía al frontend.

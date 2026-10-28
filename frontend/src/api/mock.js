@@ -42,7 +42,7 @@ export async function ubicarCoordenadas(lat, lng) {
 }
 
 
-export async function calcularRuta({ puntos = [], perfil = 'walking', volver_al_inicio = false } = {}) {
+export async function calcularRuta({ puntos = [], perfil = 'walking', volver_al_inicio = false, optimizar = false } = {}) {
   const coords = puntos.map((p) => [p.lng, p.lat]);
   if (volver_al_inicio && coords.length > 0) coords.push([...coords[0]]);
   if (coords.length < 2) {
@@ -64,5 +64,6 @@ export async function calcularRuta({ puntos = [], perfil = 'walking', volver_al_
     distancia_metros: distancia,
     duracion_segundos: duracion,
     orden: coords.map((_, i) => i),
+    optimizado: Boolean(optimizar),
   };
 }

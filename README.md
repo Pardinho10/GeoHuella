@@ -98,7 +98,7 @@ El frontend usa el backend real por defecto (`VITE_USAR_MOCK=false`, `VITE_API_B
 - Provincias: <http://localhost:8001/api/provincias/> consulta Georef y devuelve la lista cacheada.
 - El formulario Dirección permite revisar y agregar candidatos encontrados.
 - El formulario Coordenadas agrega un punto y consulta la unidad territorial.
-- `POST /api/ruta/` calcula rutas en orden fijo si `ROUTING_ENABLED=true` y hay API key; sin configurar responde 503.
+- `POST /api/ruta/` calcula rutas y, con `optimizar=true`, reordena las huellas si `ROUTING_ENABLED=true` y hay API key; sin configurar responde 503.
 - Los elementos se conservan en `localStorage`; no se guardan en Django.
 
 Para pruebas aisladas, ejecutar `pytest` dentro de `backend/` y `npm test` dentro de `frontend/`. Las pruebas simulan Georef y no dependen de llamadas externas.
@@ -117,6 +117,6 @@ Para pruebas aisladas, ejecutar `pytest` dentro de `backend/` y `npm test` dentr
 - Persistencia local por navegador, sin cuentas ni sincronización.
 - Georef puede devolver coincidencias sin coordenadas; cuando no hay candidatos ubicables se usa Nominatim como fallback exacto, sujeto a límite de una solicitud por segundo, User-Agent y atribución OpenStreetMap. Si la altura exacta no aparece, se prueban alturas vecinas de la misma calle y se ofrecen hasta cinco sugerencias aproximadas, nunca agregadas automáticamente. Se consultan como máximo cinco candidatos por proveedor; no se garantiza una lista exhaustiva.
 - Opcionalmente se usa HERE Geocoding & Search como último fallback. La API key queda solo en el backend (`HERE_API_KEY`). Sus resultados `houseNumberType: interpolated` se muestran como sugerencias aproximadas y requieren selección explícita; revisar los términos y el plan de HERE antes de usarlo en producción.
-- Las rutas usan HeiGIT/OpenRouteService y requieren `ROUTING_ENABLED=true` y `ROUTING_API_KEY`; la ordenación actual es fija (sin optimización de visita) y el máximo es 20 huellas. Revisar cuota y términos antes de producción.
+- Las rutas usan HeiGIT/OpenRouteService y VROOM, requieren `ROUTING_ENABLED=true` y `ROUTING_API_KEY`, y el máximo es 20 huellas. La optimización de orden es opcional; el primer punto seleccionado es el inicio. Revisar cuota y términos antes de producción.
 - Los tests simulan los geocodificadores y el proveedor de rutas; el resultado real depende de cobertura, filtros y disponibilidad de los servicios públicos.
 - MapLibre usa tiles vectoriales de OpenFreeMap (datos de OpenStreetMap/OpenMapTiles); Georef y OpenFreeMap son servicios externos: revisar sus condiciones, atribución y límites vigentes antes de uso no experimental o de alto volumen.

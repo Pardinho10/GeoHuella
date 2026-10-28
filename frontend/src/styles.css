@@ -838,6 +838,8 @@ button, input, select, textarea { font-family: inherit; }
   cursor: pointer;
 }
 
+.ruta-opcion + .ruta-opcion { margin-top: 6px; }
+
 .ruta-opcion input,
 .ruta-check {
   width: 15px;
@@ -845,6 +847,13 @@ button, input, select, textarea { font-family: inherit; }
   flex: none;
   accent-color: var(--cinnamon);
   cursor: pointer;
+}
+
+.ruta-nota {
+  margin: 6px 0 0;
+  font-size: 9.6px;
+  line-height: 1.4;
+  color: rgba(37, 22, 5, 0.58);
 }
 
 .ruta-panel-foot {

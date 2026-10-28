@@ -73,6 +73,7 @@ describe('App rutas', () => {
         puntos: [{ lat: -27.784, lng: -64.267 }, { lat: -27.782, lng: -64.265 }],
         perfil: 'walking',
         volver_al_inicio: false,
+        optimizar: false,
       });
     });
     expect(await screen.findByText('Ruta activa · Caminando')).toBeInTheDocument();
@@ -113,6 +114,21 @@ describe('App rutas', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('El servicio de rutas no está configurado.');
     expect(screen.getByText('Casa')).toBeInTheDocument();
+  });
+
+  it('permite optimizar el orden', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText('Casa')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Armar ruta entre huellas' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Optimizar orden' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Incluir Casa en la ruta' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Incluir Trabajo en la ruta' }));
+    await user.click(screen.getByRole('button', { name: 'Trazar ruta' }));
+
+    await waitFor(() => expect(calcularRuta).toHaveBeenCalledWith(expect.objectContaining({ optimizar: true })));
+    expect(await screen.findByText(/orden optimizado/)).toBeInTheDocument();
   });
 
   it('permite volver al inicio', async () => {

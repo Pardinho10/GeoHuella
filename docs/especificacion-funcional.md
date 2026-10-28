@@ -4,7 +4,7 @@
 
 Single page educativa, independiente, con mapa MapLibre GL JS a pantalla completa y panel flotante para crear elementos genéricos de mapa. Cada elemento es exclusivamente un punto geográfico; no modela conceptos de otros sistemas. La búsqueda por dirección puede devolver varios candidatos, que se previsualizan en el mapa y se agregan solo después de que el usuario elige uno o varios. También se pueden ingresar coordenadas directamente.
 
-Incluye rutas por calles en orden fijo entre huellas seleccionadas, con perfiles caminando, auto y bici. La optimización del orden de visita queda pendiente. No incluye autenticación, base de datos de negocio, edición de elementos guardados, importación/exportación, tiempo real, geolocalización, internacionalización, Docker ni despliegue.
+Incluye rutas por calles entre huellas seleccionadas, con perfiles caminando, auto y bici, y optimización opcional del orden de visita. No incluye autenticación, base de datos de negocio, edición de elementos guardados, importación/exportación, tiempo real, geolocalización, internacionalización, Docker ni despliegue.
 
 ## Decisiones de producto
 
@@ -21,7 +21,7 @@ Incluye rutas por calles en orden fijo entre huellas seleccionadas, con perfiles
 | Coordenadas | En campos separados admitir punto o coma decimal. En pegado de par admitir `lat, lng` con puntos decimales o `lat; lng` con comas decimales; sin separadores de miles |
 | Puntos superpuestos | Aplicar desplazamiento visual pequeño en píxeles a marcadores coincidentes mediante `offset` de MapLibre; no alterar coordenadas guardadas ni mostradas. El desplazamiento debe recalcularse de modo estable según zoom y conjunto de puntos; la tarjeta y el ajuste de vista usan siempre la posición geográfica real |
 | Marca | GeoHuella; cada punto se representa con una huella de perro SVG. Lema: “Cada lugar deja una huella”. |
-| Rutas | Entre 2 y 20 huellas seleccionadas, en orden fijo; perfiles caminando, auto y bici; opción ida y vuelta. La ruta se dibuja en MapLibre y no se persiste. Optimización de orden pendiente. |
+| Rutas | Entre 2 y 20 huellas seleccionadas; perfiles caminando, auto y bici; opción de optimizar orden e ida y vuelta. La ruta se dibuja en MapLibre y no se persiste. |
 | Estilo | Panel cálido editorial sobre mapa oscuro, tipografía Poppins y paleta `#251605`, `#c57b57`, `#f1ab86`, `#f7dba7`, `#9cafb7`; interfaz en español |
 | Versiones | Estables vigentes fijadas en archivos de dependencias |
 | Pruebas | Backend pytest + pytest-django; frontend Vitest + React Testing Library |
@@ -44,7 +44,7 @@ Campos: Nombre opcional, latitud y longitud. Validar número y caja aproximada a
 
 ### Rutas
 
-El botón “Ruta” abre un panel para seleccionar entre 2 y 20 huellas. Cada fila de la lista se puede marcar o desmarcar; las filas seleccionadas se resaltan. Se elige perfil (Caminando, Auto o Bici) y, opcionalmente, “Volver al inicio”. “Trazar ruta” llama a `POST /api/ruta/` y muestra una línea GeoJSON sobre el mapa, distancia, duración y cantidad de huellas. La ruta se cachea en el backend y no se guarda en `localStorage`; “Quitar ruta” solo elimina la visualización. Si se elimina una huella usada por la ruta, la ruta se descarta. Los errores del proveedor se muestran dentro del panel de ruta.
+El botón “Ruta” abre un panel para seleccionar entre 2 y 20 huellas. Cada fila de la lista se puede marcar o desmarcar; las filas seleccionadas se resaltan. Se elige perfil (Caminando, Auto o Bici) y, opcionalmente, “Optimizar orden” y “Volver al inicio”. Al optimizar, el primer punto de la lista se mantiene como inicio. “Trazar ruta” llama a `POST /api/ruta/` y muestra una línea GeoJSON sobre el mapa, distancia, duración y cantidad de huellas. La ruta se cachea en el backend y no se guarda en `localStorage`; “Quitar ruta” solo elimina la visualización. Si se elimina una huella usada por la ruta, la ruta se descarta. Los errores del proveedor se muestran dentro del panel de ruta.
 
 ### Mensajes y mapa
 
@@ -92,7 +92,7 @@ Pruebas obligatorias: validación, coma decimal y par pegado; lógica de lista (
 7. Tras recargar, lista y mapa recuperan elementos y contador monotónico.
 8. Zoom con controles, rueda y gestos; “Ver todos” ajusta extensión.
 9. Colores contrastan sobre el mapa oscuro; puntos coincidentes se ven y seleccionan.
-10. Ruta: seleccionar 2–20 huellas, probar los tres perfiles, ida y vuelta, distancia/duración y “Quitar ruta”.
+10. Ruta: seleccionar 2–20 huellas, probar los tres perfiles, optimización de orden, ida y vuelta, distancia/duración y “Quitar ruta”.
 11. Panel utilizable en móvil y escritorio.
 11. Tests de ambos proyectos pasan.
 12. Consola del navegador sin errores ni advertencias relevantes.

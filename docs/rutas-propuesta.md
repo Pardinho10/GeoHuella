@@ -1,6 +1,6 @@
 # Propuesta de rutas — GeoHuella
 
-**Estado: Fases 2 y 3 implementadas para ruta en orden fijo.** El backend calcula rutas y el frontend permite seleccionar huellas, elegir perfil, dibujar la línea y ver distancia/duración. La optimización de orden (`optimizar=true`) todavía no está implementada; el endpoint devuelve 400 `optimizacion_no_disponible`. El contrato vigente está en [`contrato-api.md`](contrato-api.md).
+**Estado: Fases 2, 3 y 4 implementadas.** El backend calcula rutas en orden fijo u optimizado, y el frontend permite seleccionar huellas, elegir perfil, optimizar el orden, dibujar la línea y ver distancia/duración. El contrato vigente está en [`contrato-api.md`](contrato-api.md).
 
 ## Objetivo
 
@@ -47,7 +47,7 @@ Campos:
 | `puntos` | array | sí | Entre 2 y 20 puntos con `lat`/`lng` finitos y dentro de Argentina. |
 | `perfil` | string | no | `walking` (default), `driving` o `cycling`. |
 | `optimizar` | boolean | no | Si es `true`, el proveedor puede reordenar los puntos. Default `false`. |
-| `volver_al_inicio` | boolean | no | Solo aplica con `optimizar=true`. Default `false`. |
+| `volver_al_inicio` | boolean | no | Agrega el primer punto al final. Aplica con y sin optimización. Default `false`. |
 
 ### Response 200
 
@@ -74,7 +74,7 @@ Campos:
 
 - `ruta` es GeoJSON listo para MapLibre.
 - `orden` contiene índices del array `puntos` en el orden efectivamente recorrido.
-- Con `optimizar=false`, `orden` es la identidad `[0, 1, 2, ...]`.
+- Con `optimizar=false`, `orden` es la identidad `[0, 1, 2, ...]`. Con `optimizar=true`, el orden puede cambiar y `0` se mantiene como inicio.
 - `distancia_metros` y `duracion_segundos` son números finitos y no negativos.
 - La ruta no se persiste en localStorage; se calcula bajo demanda.
 
@@ -84,9 +84,8 @@ Campos:
 |---|---|---|
 | 400 | `puntos_invalidos` | Menos de 2 o más de 20 puntos, coordenadas inválidas o fuera de Argentina. |
 | 400 | `perfil_invalido` | Perfil fuera de `walking`, `driving`, `cycling`. |
-| 400 | `optimizacion_no_disponible` | Se pidió `optimizar=true`; la optimización todavía no está implementada. |
 | 429 | `demasiadas_solicitudes` | Se superó el límite del backend. |
-| 502 | `routing_no_disponible` | El proveedor falló, agotó el timeout o devolvió una respuesta inesperada. |
+| 502 | `routing_no_disponible` | El proveedor de rutas u optimización falló, agotó el timeout o devolvió una respuesta inesperada. |
 | 503 | `routing_no_configurado` | Falta la API key o el servicio está apagado. |
 
 Formato de error, consistente con el resto de la API:
@@ -127,5 +126,5 @@ La línea debe distinguirse de los marcadores y respetar el tema visual. Las hue
 1. ~~Marca GeoHuella y huellas SVG.~~
 2. ~~Backend: cliente de routing, endpoint `/api/ruta/`, validación, caché y tests mockeados.~~
 3. ~~Frontend: selección de huellas, perfil, línea GeoJSON, distancia/duración y quitar ruta.~~
-4. Optimización de orden con límite de puntos y pruebas de error.
-5. Verificación con una API key real de HeiGIT y actualización del contrato si cambia algo.
+4. ~~Optimización de orden con límite de puntos y pruebas de error.~~
+5. ~~Verificación con una API key real de HeiGIT.~~ Queda revisar cuota/términos antes de producción.

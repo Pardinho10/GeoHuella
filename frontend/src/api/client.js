@@ -56,14 +56,14 @@ export async function ubicarCoordenadas(lat, lng) {
 }
 
 
-export async function calcularRuta({ puntos, perfil = 'walking', volver_al_inicio = false } = {}) {
+export async function calcularRuta({ puntos, perfil = 'walking', volver_al_inicio = false, optimizar = false } = {}) {
   const data = await request('/api/ruta/', {
     method: 'POST',
     body: JSON.stringify({
       puntos: Array.isArray(puntos) ? puntos : [],
       perfil,
       volver_al_inicio,
-      optimizar: false,
+      optimizar: Boolean(optimizar),
     }),
   });
   if (!Array.isArray(data?.ruta?.features) || data.ruta.features.length === 0) {

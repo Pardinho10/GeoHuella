@@ -135,7 +135,7 @@ Si Georef no informa unidad territorial, devuelve 200 y campos territoriales nul
 
 ## 5. Ruta — `POST /api/ruta/`
 
-Calcula una ruta por calles entre 2 y 20 huellas. Requiere `ROUTING_ENABLED=true` y `ROUTING_API_KEY` configurada en el backend; la key nunca se expone al frontend. El proveedor actual es HeiGIT/OpenRouteService Directions v2.
+Calcula una ruta por calles entre 2 y 20 huellas. Requiere `ROUTING_ENABLED=true` y `ROUTING_API_KEY` configurada en el backend; la key nunca se expone al frontend. Usa HeiGIT/OpenRouteService Directions v2 para la geometría y VROOM para la optimización opcional del orden.
 
 ```json
 {
@@ -153,8 +153,8 @@ Calcula una ruta por calles entre 2 y 20 huellas. Requiere `ROUTING_ENABLED=true
 |---|---|---|---|
 | `puntos` | array | sí | Entre 2 y 20 puntos con `lat`/`lng` numéricos, finitos y dentro de Argentina. |
 | `perfil` | string | no | `walking` (default), `driving` o `cycling`. |
-| `optimizar` | boolean | no | Default `false`. Si es `true`, responde 400 `optimizacion_no_disponible` hasta implementar la fase de optimización. |
-| `volver_al_inicio` | boolean | no | Default `false`. Si es `true`, agrega el primer punto al final del recorrido. |
+| `optimizar` | boolean | no | Default `false`. Si es `true`, VROOM reordena las huellas; el primer punto de la lista se mantiene como inicio. |
+| `volver_al_inicio` | boolean | no | Default `false`. Si es `true`, agrega el primer punto al final del recorrido. Funciona con y sin optimización. |
 
 `200 OK`
 
@@ -180,8 +180,8 @@ Calcula una ruta por calles entre 2 y 20 huellas. Requiere `ROUTING_ENABLED=true
 ```
 
 - `ruta` es GeoJSON listo para MapLibre.
-- `orden` contiene índices del array `puntos` en el orden recorrido. Con `volver_al_inicio=true`, el índice `0` se repite al final.
-- La ruta se cachea durante `ROUTING_CACHE_TTL` segundos y no se persiste en `localStorage`.
+- `orden` contiene índices del array `puntos` en el orden recorrido. Con `optimizar=false` es la identidad; con `optimizar=true` puede cambiar, conservando `0` como inicio. Con `volver_al_inicio=true`, el índice `0` se repite al final.
+- La ruta y el orden optimizado se cachean durante `ROUTING_CACHE_TTL` segundos y no se persisten en `localStorage`.
 - Solo se envían coordenadas y perfil al proveedor; no se envían nombres de lugares.
 
 ## 6. Errores uniformes
@@ -203,9 +203,8 @@ Todos los errores usan esta envoltura JSON:
 | 404 | `no_encontrada` | Georef y el fallback exacto no hallaron ubicación; puede incluir opcionalmente `error.sugerencias` con hasta 5 alturas cercanas de la misma calle/localidad/provincia. |
 | 422 | `fuera_de_rango` | Coordenadas fuera de la caja geográfica acordada para Argentina. |
 | 429 | `demasiadas_solicitudes` | Límite de solicitudes del backend. |
-| 400 | `optimizacion_no_disponible` | Se solicitó `optimizar=true`; la optimización de orden todavía no está implementada. |
 | 502 | `servicio_no_disponible` | Georef/Nominatim falló, agotó el timeout o devolvió una respuesta inesperada. Un fallo de HERE se degrada a las sugerencias disponibles, no a 502. |
-| 502 | `routing_no_disponible` | El proveedor de rutas falló, agotó el timeout o devolvió una respuesta inválida. |
+| 502 | `routing_no_disponible` | El proveedor de rutas o la optimización falló, agotó el timeout o devolvió una respuesta inválida. |
 | 503 | `routing_no_configurado` | `ROUTING_ENABLED` está apagado o falta `ROUTING_API_KEY`. |
 
 Los errores 400 pueden incluir `campos`, con mensajes por campo:

@@ -152,13 +152,6 @@ def ruta(request):
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
 
-    if data["optimizar"]:
-        return Response(
-            {"error": {"codigo": "optimizacion_no_disponible",
-                       "mensaje": "La optimización del orden de las huellas todavía no está disponible."}},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
     client = RoutingClient()
     if not client.disponible:
         return Response(
@@ -172,6 +165,7 @@ def ruta(request):
             data["puntos"],
             data["perfil"],
             data["volver_al_inicio"],
+            data["optimizar"],
         )
     except RoutingServiceError:
         return Response(

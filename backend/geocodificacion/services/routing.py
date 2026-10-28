@@ -22,12 +22,13 @@ class RoutingServiceError(Exception):
 
 
 class RoutingClient:
-    """Cliente mínimo para HeiGIT/OpenRouteService Directions v2."""
+    """Cliente mínimo para HeiGIT Directions v2 y optimización VROOM."""
 
     def __init__(self):
         self.enabled = bool(settings.ROUTING_ENABLED)
         self.api_key = (settings.ROUTING_API_KEY or "").strip()
         self.base_url = settings.ROUTING_BASE_URL.rstrip("/")
+        self.optimization_url = settings.ROUTING_OPTIMIZATION_URL.rstrip("/")
         self.timeout = settings.ROUTING_TIMEOUT
         self.cache_ttl = settings.ROUTING_CACHE_TTL
 
@@ -35,7 +36,7 @@ class RoutingClient:
     def disponible(self):
         return self.enabled and bool(self.api_key)
 
-    def calcular_ruta(self, puntos, perfil, volver_al_inicio=False):
+    def calcular_ruta(self, puntos, perfil, volver_al_inicio=False, optimizar=False):
         if not self.disponible:
             raise RoutingServiceError("El servicio de rutas no está configurado.")
 
@@ -43,13 +44,19 @@ class RoutingClient:
         if not perfil_api:
             raise RoutingServiceError("Perfil de ruta inválido.")
 
+        if optimizar:
+            orden = self._orden_optimizado(
+                puntos, perfil, perfil_api, volver_al_inicio
+            )
+        else:
+            orden = list(range(len(puntos)))
+            if volver_al_inicio:
+                orden.append(0)
+
         coordenadas = [
-            [float(punto["lng"]), float(punto["lat"])] for punto in puntos
+            [float(puntos[indice]["lng"]), float(puntos[indice]["lat"])]
+            for indice in orden
         ]
-        orden = list(range(len(coordenadas)))
-        if volver_al_inicio:
-            coordenadas.append(list(coordenadas[0]))
-            orden.append(0)
 
         clave = self._clave_cache(coordenadas, perfil, volver_al_inicio)
         cacheado = cache.get(clave)
@@ -57,18 +64,57 @@ class RoutingClient:
             return copy.deepcopy(cacheado)
 
         url = f"{self.base_url}/{perfil_api}/geojson"
-        headers = {
-            "Authorization": self.api_key,
-            "Content-Type": "application/json",
-            "Accept": "application/geo+json, application/json",
-            "User-Agent": "GeoHuella/0.1 (educational routing)",
-        }
         body = {
             "coordinates": coordenadas,
             "instructions": False,
             "units": "m",
         }
+        payload = self._post(url, body, accept="application/geo+json, application/json")
+        resultado = self._normalizar(payload, orden)
+        cache.set(clave, copy.deepcopy(resultado), self.cache_ttl)
+        return resultado
 
+    def _orden_optimizado(self, puntos, perfil, perfil_api, volver_al_inicio):
+        clave = self._clave_optimizacion(puntos, perfil, volver_al_inicio)
+        cacheado = cache.get(clave)
+        if isinstance(cacheado, list):
+            return list(cacheado)
+
+        inicio = [float(puntos[0]["lng"]), float(puntos[0]["lat"])]
+        vehiculo = {
+            "id": 0,
+            "profile": perfil_api,
+            "start": list(inicio),
+        }
+        if volver_al_inicio:
+            vehiculo["end"] = list(inicio)
+
+        jobs = [
+            {
+                "id": indice,
+                "location": [float(punto["lng"]), float(punto["lat"])],
+            }
+            for indice, punto in enumerate(puntos[1:], start=1)
+        ]
+
+        payload = self._post(
+            self.optimization_url,
+            {"vehicles": [vehiculo], "jobs": jobs},
+            accept="application/json",
+        )
+        orden = self._normalizar_optimizacion(
+            payload, len(puntos), volver_al_inicio
+        )
+        cache.set(clave, list(orden), self.cache_ttl)
+        return orden
+
+    def _post(self, url, body, accept):
+        headers = {
+            "Authorization": self.api_key,
+            "Content-Type": "application/json",
+            "Accept": accept,
+            "User-Agent": "GeoHuella/0.1 (educational routing)",
+        }
         try:
             response = requests.post(
                 url,
@@ -89,10 +135,7 @@ class RoutingClient:
         except ValueError as exc:
             logger.warning("Routing provider devolvió JSON inválido")
             raise RoutingServiceError("El proveedor de rutas devolvió una respuesta inválida.") from exc
-
-        resultado = self._normalizar(payload, orden)
-        cache.set(clave, copy.deepcopy(resultado), self.cache_ttl)
-        return resultado
+        return payload
 
     def _clave_cache(self, coordenadas, perfil, volver_al_inicio):
         firma = json.dumps(
@@ -108,6 +151,59 @@ class RoutingClient:
         )
         digest = hashlib.sha256(firma.encode("utf-8")).hexdigest()
         return f"ruta:v1:{digest}"
+
+    def _clave_optimizacion(self, puntos, perfil, volver_al_inicio):
+        firma = json.dumps(
+            {
+                "puntos": [
+                    [round(float(p["lng"]), 6), round(float(p["lat"]), 6)]
+                    for p in puntos
+                ],
+                "perfil": perfil,
+                "volver_al_inicio": bool(volver_al_inicio),
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        digest = hashlib.sha256(firma.encode("utf-8")).hexdigest()
+        return f"ruta-orden:v1:{digest}"
+
+    def _normalizar_optimizacion(self, payload, cantidad_puntos, volver_al_inicio):
+        if not isinstance(payload, dict) or payload.get("code") != 0:
+            raise RoutingServiceError("La optimización no pudo resolver el recorrido.")
+
+        summary = payload.get("summary")
+        if not isinstance(summary, dict):
+            raise RoutingServiceError("La optimización no informó un resumen válido.")
+        if summary.get("unassigned") not in (None, 0):
+            raise RoutingServiceError("La optimización dejó huellas sin asignar.")
+
+        routes = payload.get("routes")
+        if not isinstance(routes, list) or len(routes) != 1:
+            raise RoutingServiceError("La optimización no devolvió una ruta única.")
+        route = routes[0]
+        steps = route.get("steps") if isinstance(route, dict) else None
+        if not isinstance(steps, list):
+            raise RoutingServiceError("La optimización no devolvió pasos válidos.")
+
+        orden = [0]
+        vistos = set()
+        for step in steps:
+            if not isinstance(step, dict) or step.get("type") != "job":
+                continue
+            job = step.get("job")
+            if isinstance(job, bool) or not isinstance(job, int):
+                raise RoutingServiceError("La optimización devolvió un paso inválido.")
+            if job < 1 or job >= cantidad_puntos or job in vistos:
+                raise RoutingServiceError("La optimización devolvió un orden inválido.")
+            vistos.add(job)
+            orden.append(job)
+
+        if vistos != set(range(1, cantidad_puntos)):
+            raise RoutingServiceError("La optimización no incluyó todas las huellas.")
+        if volver_al_inicio:
+            orden.append(0)
+        return orden
 
     @staticmethod
     def _numero_no_negativo(valor):

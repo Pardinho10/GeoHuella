@@ -63,6 +63,7 @@ export default function App() {
   const [seleccionRuta, setSeleccionRuta] = useState(new Set());
   const [perfilRuta, setPerfilRuta] = useState('walking');
   const [volverInicio, setVolverInicio] = useState(false);
+  const [optimizarRuta, setOptimizarRuta] = useState(false);
   const [ruta, setRuta] = useState(null);
   const [calculandoRuta, setCalculandoRuta] = useState(false);
   const [errorRuta, setErrorRuta] = useState(null);
@@ -314,6 +315,7 @@ export default function App() {
       setSeleccionRuta(new Set(ruta.ids));
       setPerfilRuta(ruta.perfil || 'walking');
       setVolverInicio(Boolean(ruta.volverInicio));
+      setOptimizarRuta(Boolean(ruta.optimizar));
     } else {
       setSeleccionRuta(new Set());
     }
@@ -353,6 +355,12 @@ export default function App() {
     setErrorRuta(null);
   }
 
+  function cambiarOptimizarRuta() {
+    setOptimizarRuta((v) => !v);
+    setRuta(null);
+    setErrorRuta(null);
+  }
+
   function limpiarRuta() {
     setRuta(null);
     setErrorRuta(null);
@@ -371,12 +379,14 @@ export default function App() {
         puntos: elegidos.map(({ lat, lng }) => ({ lat, lng })),
         perfil: perfilRuta,
         volver_al_inicio: volverInicio,
+        optimizar: optimizarRuta,
       });
       setRuta({
         ...data,
         ids: elegidos.map((el) => el.id),
         perfil: perfilRuta,
         volverInicio,
+        optimizar: optimizarRuta,
       });
       setFitRuta((v) => v + 1);
       setModoRuta(false);
@@ -789,11 +799,22 @@ export default function App() {
                   <label className="ruta-opcion">
                     <input
                       type="checkbox"
+                      checked={optimizarRuta}
+                      onChange={cambiarOptimizarRuta}
+                    />
+                    <span>Optimizar orden</span>
+                  </label>
+
+                  <label className="ruta-opcion">
+                    <input
+                      type="checkbox"
                       checked={volverInicio}
                       onChange={cambiarVolverInicio}
                     />
                     <span>Volver al inicio</span>
                   </label>
+
+                  <p className="ruta-nota">El recorrido empieza en la primera huella de la lista.</p>
 
                   <div className="ruta-panel-foot">
                     <span className="ruta-count">{seleccionRuta.size} de {MAX_PUNTOS_RUTA}</span>
@@ -830,6 +851,7 @@ export default function App() {
                   </div>
                   <p className="ruta-resumen-meta">
                     {formatearDuracion(ruta.duracion_segundos)} · {ruta.ids.length} huellas
+                    {ruta.optimizar ? ' · orden optimizado' : ''}
                     {ruta.volverInicio ? ' · ida y vuelta' : ''}
                   </p>
                   <div className="ruta-resumen-actions">

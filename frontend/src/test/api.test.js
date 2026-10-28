@@ -50,6 +50,7 @@ describe('api client', () => {
       puntos: [{ lat: 2, lng: 1 }, { lat: 4, lng: 3 }],
       perfil: 'driving',
       volver_al_inicio: true,
+      optimizar: true,
     });
     expect(res).toEqual(payload);
     const [, options] = fetch.mock.calls[0];
@@ -58,7 +59,7 @@ describe('api client', () => {
       puntos: [{ lat: 2, lng: 1 }, { lat: 4, lng: 3 }],
       perfil: 'driving',
       volver_al_inicio: true,
-      optimizar: false,
+      optimizar: true,
     });
   });
 

@@ -90,6 +90,10 @@ ROUTING_BASE_URL = config(
     "ROUTING_BASE_URL",
     default="https://api.heigit.org/openrouteservice/v2/directions",
 )
+ROUTING_OPTIMIZATION_URL = config(
+    "ROUTING_OPTIMIZATION_URL",
+    default="https://api.heigit.org/vroom/v0",
+)
 ROUTING_TIMEOUT = config("ROUTING_TIMEOUT", default=10, cast=int)
 ROUTING_CACHE_TTL = config("ROUTING_CACHE_TTL", default=300, cast=int)
 

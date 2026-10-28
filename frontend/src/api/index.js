@@ -8,4 +8,5 @@ const impl = usarMock ? mock : real;
 export const obtenerProvincias = impl.obtenerProvincias;
 export const geocodificar = impl.geocodificar;
 export const ubicarCoordenadas = impl.ubicarCoordenadas;
+export const calcularRuta = impl.calcularRuta;
 export { usarMock };

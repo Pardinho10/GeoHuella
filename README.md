@@ -2,7 +2,7 @@
 
 **Cada lugar deja una huella.**
 
-Mapa de lugares para buscar direcciones, comparar coincidencias y guardar puntos. Proyecto independiente y educativo para aprender React, MapLibre GL JS y las APIs Georef/OpenStreetMap/HERE. Sin autenticación ni base de datos de negocio.
+Mapa de lugares para buscar direcciones, comparar coincidencias, guardar puntos y trazar rutas por calles. Proyecto independiente y educativo para aprender React, MapLibre GL JS y las APIs Georef/OpenStreetMap/HERE. Sin autenticación ni base de datos de negocio.
 
 > Nombre de producto: **GeoHuella**. Carpeta y repositorio interno: `piloto-mapa`.
 
@@ -117,5 +117,6 @@ Para pruebas aisladas, ejecutar `pytest` dentro de `backend/` y `npm test` dentr
 - Persistencia local por navegador, sin cuentas ni sincronización.
 - Georef puede devolver coincidencias sin coordenadas; cuando no hay candidatos ubicables se usa Nominatim como fallback exacto, sujeto a límite de una solicitud por segundo, User-Agent y atribución OpenStreetMap. Si la altura exacta no aparece, se prueban alturas vecinas de la misma calle y se ofrecen hasta cinco sugerencias aproximadas, nunca agregadas automáticamente. Se consultan como máximo cinco candidatos por proveedor; no se garantiza una lista exhaustiva.
 - Opcionalmente se usa HERE Geocoding & Search como último fallback. La API key queda solo en el backend (`HERE_API_KEY`). Sus resultados `houseNumberType: interpolated` se muestran como sugerencias aproximadas y requieren selección explícita; revisar los términos y el plan de HERE antes de usarlo en producción.
-- Los tests simulan los geocodificadores; el resultado real depende de cobertura, filtros y disponibilidad de los servicios públicos.
+- Las rutas usan HeiGIT/OpenRouteService y requieren `ROUTING_ENABLED=true` y `ROUTING_API_KEY`; la ordenación actual es fija (sin optimización de visita) y el máximo es 20 huellas. Revisar cuota y términos antes de producción.
+- Los tests simulan los geocodificadores y el proveedor de rutas; el resultado real depende de cobertura, filtros y disponibilidad de los servicios públicos.
 - MapLibre usa tiles vectoriales de OpenFreeMap (datos de OpenStreetMap/OpenMapTiles); Georef y OpenFreeMap son servicios externos: revisar sus condiciones, atribución y límites vigentes antes de uso no experimental o de alto volumen.

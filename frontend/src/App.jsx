@@ -1,8 +1,9 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { cargarElementos, guardarElementos, cargarContador, guardarContador, colorSeguro } from './lib/storage.js';
 import { agregarCandidatos, parsearCoordenada, parsearParPegado, enRangoArgentina } from './lib/elementos.js';
-import { obtenerProvincias, geocodificar, ubicarCoordenadas } from './api';
+import { obtenerProvincias, geocodificar, ubicarCoordenadas, calcularRuta } from './api';
 import IconHuella from './components/IconHuella.jsx';
+import { MAX_PUNTOS_RUTA, PERFILES_RUTA, etiquetaPerfil, formatearDistancia, formatearDuracion } from './lib/ruta.js';
 
 const Mapa = React.lazy(() => import('./components/Mapa.jsx'));
 
@@ -57,8 +58,41 @@ export default function App() {
   const [fitAll, setFitAll] = useState(0);
   const [popup, setPopup] = useState(null);
 
+  // Ruta
+  const [modoRuta, setModoRuta] = useState(false);
+  const [seleccionRuta, setSeleccionRuta] = useState(new Set());
+  const [perfilRuta, setPerfilRuta] = useState('walking');
+  const [volverInicio, setVolverInicio] = useState(false);
+  const [ruta, setRuta] = useState(null);
+  const [calculandoRuta, setCalculandoRuta] = useState(false);
+  const [errorRuta, setErrorRuta] = useState(null);
+  const [fitRuta, setFitRuta] = useState(0);
+
   useEffect(() => { guardarElementos(elementos); }, [elementos]);
   useEffect(() => { guardarContador(contador); }, [contador]);
+
+  useEffect(() => {
+    setSeleccionRuta((prev) => {
+      if (prev.size === 0) return prev;
+      const ids = new Set(elementos.map((e) => e.id));
+      let cambio = false;
+      const next = new Set();
+      prev.forEach((id) => {
+        if (ids.has(id)) next.add(id);
+        else cambio = true;
+      });
+      return cambio ? next : prev;
+    });
+  }, [elementos]);
+
+  useEffect(() => {
+    if (!ruta) return;
+    const ids = new Set(elementos.map((e) => e.id));
+    if (ruta.ids.some((id) => !ids.has(id))) {
+      setRuta(null);
+      setErrorRuta(null);
+    }
+  }, [elementos, ruta]);
 
   useEffect(() => {
     let activo = true;
@@ -275,6 +309,84 @@ export default function App() {
     setFoco([el.lat, el.lng]);
   }
 
+  function abrirRuta() {
+    if (ruta) {
+      setSeleccionRuta(new Set(ruta.ids));
+      setPerfilRuta(ruta.perfil || 'walking');
+      setVolverInicio(Boolean(ruta.volverInicio));
+    } else {
+      setSeleccionRuta(new Set());
+    }
+    setModoRuta(true);
+    setRuta(null);
+    setErrorRuta(null);
+  }
+
+  function cerrarRuta() {
+    setModoRuta(false);
+    setErrorRuta(null);
+  }
+
+  function toggleRutaElemento(id) {
+    setErrorRuta(null);
+    setRuta(null);
+    setSeleccionRuta((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else if (next.size < MAX_PUNTOS_RUTA) {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function cambiarPerfilRuta(perfil) {
+    setPerfilRuta(perfil);
+    setRuta(null);
+    setErrorRuta(null);
+  }
+
+  function cambiarVolverInicio() {
+    setVolverInicio((v) => !v);
+    setRuta(null);
+    setErrorRuta(null);
+  }
+
+  function limpiarRuta() {
+    setRuta(null);
+    setErrorRuta(null);
+  }
+
+  async function trazarRuta() {
+    const elegidos = elementos.filter((el) => seleccionRuta.has(el.id));
+    if (elegidos.length < 2) {
+      setErrorRuta('Elegí al menos 2 huellas para armar la ruta.');
+      return;
+    }
+    setCalculandoRuta(true);
+    setErrorRuta(null);
+    try {
+      const data = await calcularRuta({
+        puntos: elegidos.map(({ lat, lng }) => ({ lat, lng })),
+        perfil: perfilRuta,
+        volver_al_inicio: volverInicio,
+      });
+      setRuta({
+        ...data,
+        ids: elegidos.map((el) => el.id),
+        perfil: perfilRuta,
+        volverInicio,
+      });
+      setFitRuta((v) => v + 1);
+      setModoRuta(false);
+    } catch (err) {
+      setErrorRuta(err?.message || 'No se pudo calcular la ruta.');
+    } finally {
+      setCalculandoRuta(false);
+    }
+  }
+
   return (
     <div className={`app-shell ${panelAbierto ? 'panel-abierto' : 'panel-cerrado'}`}>
       <Suspense fallback={<div className="mapa-cargando" role="status">Cargando mapa…</div>}>
@@ -288,6 +400,8 @@ export default function App() {
           setPopup={setPopup}
           foco={foco}
           fitAll={fitAll}
+          ruta={ruta}
+          fitRuta={fitRuta}
           onToggleSeleccionado={toggleSeleccionado}
           onToggleSugerencia={toggleSugerencia}
           onFoco={setFoco}
@@ -621,6 +735,15 @@ export default function App() {
                   <button
                     type="button"
                     className="btn btn-soft btn-sm"
+                    onClick={abrirRuta}
+                    disabled={elementos.length < 2}
+                    aria-label="Armar ruta entre huellas"
+                  >
+                    Ruta
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-soft btn-sm"
                     onClick={() => setFitAll((v) => v + 1)}
                     disabled={elementos.length === 0}
                   >
@@ -637,6 +760,93 @@ export default function App() {
                 </div>
               </div>
 
+              {modoRuta && (
+                <section className="ruta-panel" aria-label="Armar ruta entre huellas">
+                  <div className="ruta-panel-head">
+                    <div>
+                      <h3>Armar paseo</h3>
+                      <p>Elegí entre 2 y {MAX_PUNTOS_RUTA} huellas para unirlas por calles.</p>
+                    </div>
+                    <button type="button" className="btn btn-soft btn-sm" onClick={cerrarRuta}>
+                      Cancelar
+                    </button>
+                  </div>
+
+                  <div className="ruta-perfiles" role="group" aria-label="Medio de transporte">
+                    {PERFILES_RUTA.map((perfil) => (
+                      <button
+                        key={perfil.id}
+                        type="button"
+                        className={perfilRuta === perfil.id ? 'is-active' : ''}
+                        aria-pressed={perfilRuta === perfil.id}
+                        onClick={() => cambiarPerfilRuta(perfil.id)}
+                      >
+                        {perfil.etiqueta}
+                      </button>
+                    ))}
+                  </div>
+
+                  <label className="ruta-opcion">
+                    <input
+                      type="checkbox"
+                      checked={volverInicio}
+                      onChange={cambiarVolverInicio}
+                    />
+                    <span>Volver al inicio</span>
+                  </label>
+
+                  <div className="ruta-panel-foot">
+                    <span className="ruta-count">{seleccionRuta.size} de {MAX_PUNTOS_RUTA}</span>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={trazarRuta}
+                      disabled={calculandoRuta || seleccionRuta.size < 2}
+                    >
+                      {calculandoRuta ? <span className="loading">Calculando…</span> : 'Trazar ruta'}
+                    </button>
+                  </div>
+                  {errorRuta && <p className="ruta-error" role="alert">{errorRuta}</p>}
+                </section>
+              )}
+
+              {!modoRuta && ruta && (
+                <section className="ruta-resumen" aria-live="polite">
+                  <div className="ruta-resumen-head">
+                    <div>
+                      <span className="ruta-kicker">Ruta activa · {etiquetaPerfil(ruta.perfil)}</span>
+                      <strong>{formatearDistancia(ruta.distancia_metros)}</strong>
+                    </div>
+                    <button
+                      type="button"
+                      className="icon-delete"
+                      onClick={limpiarRuta}
+                      aria-label="Quitar ruta"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                  </div>
+                  <p className="ruta-resumen-meta">
+                    {formatearDuracion(ruta.duracion_segundos)} · {ruta.ids.length} huellas
+                    {ruta.volverInicio ? ' · ida y vuelta' : ''}
+                  </p>
+                  <div className="ruta-resumen-actions">
+                    <button
+                      type="button"
+                      className="btn btn-soft btn-sm"
+                      onClick={() => setFitRuta((v) => v + 1)}
+                    >
+                      Ver ruta
+                    </button>
+                    <button type="button" className="btn btn-soft btn-sm" onClick={abrirRuta}>
+                      Editar ruta
+                    </button>
+                  </div>
+                </section>
+              )}
+
               {elementos.length === 0 ? (
                 <div className="empty-state">
                   <span className="empty-icon" aria-hidden="true"><IconHuella size={20} /></span>
@@ -645,32 +855,45 @@ export default function App() {
                 </div>
               ) : (
                 <div className="element-list">
-                  {elementos.map((el) => (
-                    <div className="element-row" key={el.id}>
-                      <button
-                        type="button"
-                        className="element-main"
-                        onClick={() => seleccionarElemento(el)}
-                        aria-label={`Centrar mapa en ${el.nombre}`}
-                      >
-                        <span className="element-headline">
-                          <span className="element-dot" style={{ color: colorSeguro(el.color), background: colorSeguro(el.color) }} />
-                          <span className="element-name">{el.nombre}</span>
-                        </span>
-                        <span className="element-sub">{el.direccion || 'Sin dirección disponible'}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="icon-delete"
-                        onClick={() => eliminar(el.id)}
-                        aria-label={`Eliminar ${el.nombre}`}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
+                  {elementos.map((el) => {
+                    const enRuta = seleccionRuta.has(el.id);
+                    return (
+                      <div className={`element-row ${enRuta ? 'is-ruta' : ''}`} key={el.id}>
+                        {modoRuta && (
+                          <input
+                            type="checkbox"
+                            className="ruta-check"
+                            checked={enRuta}
+                            onChange={() => toggleRutaElemento(el.id)}
+                            disabled={!enRuta && seleccionRuta.size >= MAX_PUNTOS_RUTA}
+                            aria-label={`Incluir ${el.nombre} en la ruta`}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          className="element-main"
+                          onClick={() => (modoRuta ? toggleRutaElemento(el.id) : seleccionarElemento(el))}
+                          aria-label={modoRuta ? `Seleccionar ${el.nombre} para la ruta` : `Centrar mapa en ${el.nombre}`}
+                        >
+                          <span className="element-headline">
+                            <span className="element-dot" style={{ color: colorSeguro(el.color), background: colorSeguro(el.color) }} />
+                            <span className="element-name">{el.nombre}</span>
+                          </span>
+                          <span className="element-sub">{el.direccion || 'Sin dirección disponible'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="icon-delete"
+                          onClick={() => eliminar(el.id)}
+                          aria-label={`Eliminar ${el.nombre}`}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                          </svg>
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </section>

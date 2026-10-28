@@ -755,6 +755,181 @@ button, input, select, textarea { font-family: inherit; }
   border-color: rgba(197, 123, 87, 0.3);
 }
 
+/* ---------- Rutas ---------- */
+
+.ruta-panel {
+  margin: 0 0 10px;
+  padding: 12px;
+  background: rgba(255, 252, 244, 0.68);
+  border: 1px solid rgba(197, 123, 87, 0.36);
+  border-radius: 14px;
+  box-shadow: 0 8px 18px rgba(37, 22, 5, 0.06);
+}
+
+.ruta-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ruta-panel-head h3 {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--coffee);
+}
+
+.ruta-panel-head p {
+  max-width: 28ch;
+  margin: 3px 0 0;
+  font-size: 10.2px;
+  line-height: 1.45;
+  color: rgba(37, 22, 5, 0.7);
+}
+
+.ruta-perfiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 10px;
+  padding: 3px;
+  background: rgba(37, 22, 5, 0.075);
+  border: 1px solid rgba(37, 22, 5, 0.07);
+  border-radius: 11px;
+}
+
+.ruta-perfiles button {
+  padding: 6px 5px;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(37, 22, 5, 0.68);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.ruta-perfiles button:hover { color: var(--coffee); }
+
+.ruta-perfiles button.is-active {
+  color: var(--peach);
+  background: var(--coffee);
+  box-shadow: 0 4px 10px rgba(37, 22, 5, 0.2);
+}
+
+.ruta-perfiles button:focus-visible,
+.ruta-opcion input:focus-visible {
+  outline: 2px solid var(--cinnamon);
+  outline-offset: 2px;
+}
+
+.ruta-opcion {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 9px;
+  font-size: 10.4px;
+  font-weight: 500;
+  color: rgba(37, 22, 5, 0.76);
+  cursor: pointer;
+}
+
+.ruta-opcion input,
+.ruta-check {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  accent-color: var(--cinnamon);
+  cursor: pointer;
+}
+
+.ruta-panel-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ruta-count {
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgba(37, 22, 5, 0.62);
+}
+
+.ruta-error {
+  margin: 8px 0 0;
+  padding: 7px 9px;
+  font-size: 10.3px;
+  line-height: 1.45;
+  color: #7d2c17;
+  background: rgba(197, 123, 87, 0.13);
+  border: 1px solid rgba(197, 123, 87, 0.26);
+  border-radius: 8px;
+}
+
+.ruta-resumen {
+  margin: 0 0 10px;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(197, 123, 87, 0.2), rgba(247, 219, 167, 0.34));
+  border: 1px solid rgba(197, 123, 87, 0.34);
+  border-radius: 14px;
+  box-shadow: 0 8px 18px rgba(37, 22, 5, 0.06);
+}
+
+.ruta-resumen-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ruta-kicker {
+  display: block;
+  font-size: 8.8px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: rgba(37, 22, 5, 0.66);
+}
+
+.ruta-resumen-head strong {
+  display: block;
+  margin-top: 2px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--coffee);
+}
+
+.ruta-resumen-meta {
+  margin: 4px 0 10px;
+  font-size: 10.6px;
+  color: rgba(37, 22, 5, 0.72);
+}
+
+.ruta-resumen-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.ruta-check {
+  margin: 9px 2px 0 1px;
+}
+
+.element-row.is-ruta {
+  background: rgba(241, 171, 134, 0.24);
+  border-color: var(--cinnamon);
+  box-shadow: inset 0 0 0 1px rgba(197, 123, 87, 0.18);
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { obtenerProvincias, geocodificar, ubicarCoordenadas } from '../api/client.js';
+import { obtenerProvincias, geocodificar, ubicarCoordenadas, calcularRuta } from '../api/client.js';
 
 describe('API contrato (fetch simulado)', () => {
   beforeEach(() => vi.restoreAllMocks());
@@ -63,6 +63,29 @@ describe('API contrato (fetch simulado)', () => {
       codigo: 'no_encontrada',
       sugerencias,
     });
+  });
+
+  it('ruta: geometría y métricas completas', async () => {
+    const payload = {
+      ruta: {
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: [[-64.267, -27.784], [-64.265, -27.782]] },
+          properties: { summary: { distance: 328.6, duration: 237 } },
+        }],
+      },
+      distancia_metros: 328.6,
+      duracion_segundos: 237,
+      orden: [0, 1],
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => payload }));
+    const res = await calcularRuta({ puntos: [{ lat: -27.784, lng: -64.267 }, { lat: -27.782, lng: -64.265 }] });
+    expect(res.ruta.type).toBe('FeatureCollection');
+    expect(res.ruta.features[0].geometry.coordinates).toHaveLength(2);
+    expect(res.distancia_metros).toBe(328.6);
+    expect(res.duracion_segundos).toBe(237);
+    expect(res.orden).toEqual([0, 1]);
   });
 
   it('coordenadas válidas respuesta', async () => {

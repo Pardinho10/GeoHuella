@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { obtenerProvincias, geocodificar, ubicarCoordenadas } from '../api/client.js';
+import { obtenerProvincias, geocodificar, ubicarCoordenadas, calcularRuta } from '../api/client.js';
 
 describe('api client', () => {
   beforeEach(() => {
@@ -33,6 +33,52 @@ describe('api client', () => {
       json: async () => ({ error: { codigo: 'fuera_de_rango', mensaje: 'Coordenadas fuera de rango' } }),
     }));
     await expect(ubicarCoordenadas(0, 0)).rejects.toMatchObject({ codigo: 'fuera_de_rango' });
+  });
+
+  it('calcularRuta envía puntos y perfil y devuelve la ruta', async () => {
+    const payload = {
+      ruta: { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'LineString', coordinates: [[1, 2], [3, 4]] } }] },
+      distancia_metros: 100,
+      duracion_segundos: 60,
+      orden: [0, 1],
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => payload,
+    }));
+    const res = await calcularRuta({
+      puntos: [{ lat: 2, lng: 1 }, { lat: 4, lng: 3 }],
+      perfil: 'driving',
+      volver_al_inicio: true,
+    });
+    expect(res).toEqual(payload);
+    const [, options] = fetch.mock.calls[0];
+    expect(options.method).toBe('POST');
+    expect(JSON.parse(options.body)).toEqual({
+      puntos: [{ lat: 2, lng: 1 }, { lat: 4, lng: 3 }],
+      perfil: 'driving',
+      volver_al_inicio: true,
+      optimizar: false,
+    });
+  });
+
+  it('calcularRuta propaga el error del backend', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({ error: { codigo: 'routing_no_configurado', mensaje: 'El servicio de rutas no está configurado.' } }),
+    }));
+    await expect(calcularRuta({ puntos: [{ lat: 2, lng: 1 }, { lat: 4, lng: 3 }] }))
+      .rejects.toMatchObject({ codigo: 'routing_no_configurado' });
+  });
+
+  it('calcularRuta rechaza una respuesta sin geometría', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ruta: { type: 'FeatureCollection', features: [] } }),
+    }));
+    await expect(calcularRuta({ puntos: [{ lat: 2, lng: 1 }, { lat: 4, lng: 3 }] }))
+      .rejects.toMatchObject({ codigo: 'ruta_invalida' });
   });
 
   it('fallo de conexión lanza error amigable', async () => {

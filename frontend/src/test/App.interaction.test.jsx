@@ -7,6 +7,8 @@ vi.mock('@vis.gl/react-maplibre', () => ({
   Marker: ({ children }) => <div data-testid="marker">{children}</div>,
   Popup: ({ children }) => <div>{children}</div>,
   NavigationControl: () => null,
+  Source: ({ children }) => <div>{children}</div>,
+  Layer: () => null,
   useMap: () => ({
     current: { flyTo: vi.fn(), fitBounds: vi.fn(), getZoom: () => 4 },
   }),
@@ -18,6 +20,7 @@ vi.mock('../api', () => ({
     { lat: -34.6, lng: -58.3, direccion: 'AV TEST 1', provincia: 'Buenos Aires', localidad: 'X', departamento: null, aproximada: true },
   ]),
   ubicarCoordenadas: vi.fn(),
+  calcularRuta: vi.fn(),
 }));
 
 import { geocodificar, ubicarCoordenadas } from '../api';

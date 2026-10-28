@@ -40,3 +40,29 @@ export async function ubicarCoordenadas(lat, lng) {
     departamento: null,
   };
 }
+
+
+export async function calcularRuta({ puntos = [], perfil = 'walking', volver_al_inicio = false } = {}) {
+  const coords = puntos.map((p) => [p.lng, p.lat]);
+  if (volver_al_inicio && coords.length > 0) coords.push([...coords[0]]);
+  if (coords.length < 2) {
+    const e = new Error('Se necesitan al menos dos puntos.');
+    e.codigo = 'solicitud_invalida';
+    throw e;
+  }
+  const distancia = Math.max(1, coords.length - 1) * 900;
+  const duracion = Math.round(distancia / (perfil === 'driving' ? 9 : perfil === 'cycling' ? 4.5 : 1.35));
+  return {
+    ruta: {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: coords },
+        properties: { summary: { distance: distancia, duration: duracion } },
+      }],
+    },
+    distancia_metros: distancia,
+    duracion_segundos: duracion,
+    orden: coords.map((_, i) => i),
+  };
+}

@@ -54,3 +54,22 @@ export async function ubicarCoordenadas(lat, lng) {
     body: JSON.stringify({ lat, lng }),
   });
 }
+
+
+export async function calcularRuta({ puntos, perfil = 'walking', volver_al_inicio = false } = {}) {
+  const data = await request('/api/ruta/', {
+    method: 'POST',
+    body: JSON.stringify({
+      puntos: Array.isArray(puntos) ? puntos : [],
+      perfil,
+      volver_al_inicio,
+      optimizar: false,
+    }),
+  });
+  if (!Array.isArray(data?.ruta?.features) || data.ruta.features.length === 0) {
+    const e = new Error('El servidor devolvió una ruta inválida.');
+    e.codigo = 'ruta_invalida';
+    throw e;
+  }
+  return data;
+}

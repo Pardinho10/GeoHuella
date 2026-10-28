@@ -1,6 +1,6 @@
 # Propuesta de rutas — GeoHuella
 
-**Estado: Fase 2 implementada para ruta en orden fijo.** La optimización de orden (`optimizar=true`) todavía no está implementada; el endpoint devuelve 400 `optimizacion_no_disponible`. El contrato vigente está en [`contrato-api.md`](contrato-api.md).
+**Estado: Fases 2 y 3 implementadas para ruta en orden fijo.** El backend calcula rutas y el frontend permite seleccionar huellas, elegir perfil, dibujar la línea y ver distancia/duración. La optimización de orden (`optimizar=true`) todavía no está implementada; el endpoint devuelve 400 `optimizacion_no_disponible`. El contrato vigente está en [`contrato-api.md`](contrato-api.md).
 
 ## Objetivo
 
@@ -126,6 +126,6 @@ La línea debe distinguirse de los marcadores y respetar el tema visual. Las hue
 
 1. ~~Marca GeoHuella y huellas SVG.~~
 2. ~~Backend: cliente de routing, endpoint `/api/ruta/`, validación, caché y tests mockeados.~~
-3. Frontend: selección de huellas, perfil, línea GeoJSON, distancia/duración y quitar ruta.
+3. ~~Frontend: selección de huellas, perfil, línea GeoJSON, distancia/duración y quitar ruta.~~
 4. Optimización de orden con límite de puntos y pruebas de error.
 5. Verificación con una API key real de HeiGIT y actualización del contrato si cambia algo.

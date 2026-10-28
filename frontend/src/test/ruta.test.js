@@ -4,6 +4,7 @@ import {
   formatearDuracion,
   etiquetaPerfil,
   boundsDeRuta,
+  tramosDeRuta,
 } from '../lib/ruta.js';
 
 describe('utilidades de ruta', () => {
@@ -41,5 +42,35 @@ describe('utilidades de ruta', () => {
     };
     expect(boundsDeRuta(ruta)).toEqual([[-64.3, -27.9], [-64.2, -27.7]]);
     expect(boundsDeRuta(null)).toBeNull();
+  });
+});
+
+
+describe('tramos de ida y regreso', () => {
+  const feature = {
+    type: 'Feature',
+    properties: { way_points: [0, 2, 4, 5] },
+    geometry: {
+      type: 'LineString',
+      coordinates: [[0, 0], [1, 1], [2, 2], [3, 3], [4, 4], [0, 0]],
+    },
+  };
+
+  it('separa la ida y el regreso usando way_points', () => {
+    const tramos = tramosDeRuta({
+      volverInicio: true,
+      ruta: { type: 'FeatureCollection', features: [feature] },
+    });
+    expect(tramos.ida.features[0].geometry.coordinates).toHaveLength(5);
+    expect(tramos.regreso.features[0].geometry.coordinates).toHaveLength(2);
+    expect(tramos.ida.features[0].geometry.coordinates.at(-1)).toEqual([4, 4]);
+    expect(tramos.regreso.features[0].geometry.coordinates[0]).toEqual([4, 4]);
+  });
+
+  it('no separa cuando la ruta no vuelve al inicio', () => {
+    const ruta = { volverInicio: false, ruta: { type: 'FeatureCollection', features: [feature] } };
+    const tramos = tramosDeRuta(ruta);
+    expect(tramos.regreso).toBeNull();
+    expect(tramos.ida).toBe(ruta.ruta);
   });
 });

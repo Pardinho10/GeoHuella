@@ -185,6 +185,7 @@ Calcula una ruta por calles entre 2 y 20 huellas. Requiere `ROUTING_ENABLED=true
 - `orden` contiene índices del array `puntos` en el orden recorrido. Con `optimizar=false` respeta el orden salvo que `fin` mueva ese punto al final; con `optimizar=true` puede cambiar, conservando `0` como inicio y `fin` como final. Con `volver_al_inicio=true`, el índice `0` se repite al final.
 - La ruta y el orden optimizado se cachean durante `ROUTING_CACHE_TTL` segundos y no se persisten en `localStorage`.
 - El frontend permite elegir inicio y final; envía el inicio primero y el final al final del arreglo, con `fin` apuntando a la última posición.
+- Con `volver_al_inicio=true`, el frontend divide la geometría usando el penúltimo `properties.way_points`: ida sólida y regreso punteado. Si falta `way_points`, usa el punto más lejano como corte aproximado.
 - Solo se envían coordenadas y perfil al proveedor; no se envían nombres de lugares.
 
 ## 6. Errores uniformes

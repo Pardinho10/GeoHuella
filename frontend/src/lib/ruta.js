@@ -61,3 +61,62 @@ export function boundsDeRuta(ruta) {
   }
   return [[minLng, minLat], [maxLng, maxLat]];
 }
+
+
+function coleccionLinea(coordenadas) {
+  return {
+    type: 'FeatureCollection',
+    features: [{
+      type: 'Feature',
+      properties: {},
+      geometry: { type: 'LineString', coordinates: coordenadas },
+    }],
+  };
+}
+
+function indiceMasLejano(coordenadas) {
+  if (coordenadas.length < 2) return 0;
+  const [lng0, lat0] = coordenadas[0];
+  let mejor = 0;
+  let mejorDistancia = -1;
+  coordenadas.forEach(([lng, lat], indice) => {
+    const distancia = (lng - lng0) ** 2 + (lat - lat0) ** 2;
+    if (distancia > mejorDistancia) {
+      mejorDistancia = distancia;
+      mejor = indice;
+    }
+  });
+  return mejor;
+}
+
+export function tramosDeRuta(ruta) {
+  const feature = ruta?.ruta?.features?.[0];
+  const coordenadas = feature?.geometry?.coordinates;
+  if (!Array.isArray(coordenadas) || coordenadas.length < 2) {
+    return { ida: ruta?.ruta || null, regreso: null };
+  }
+  if (!ruta?.volverInicio) {
+    return { ida: ruta.ruta, regreso: null };
+  }
+
+  const wayPoints = feature?.properties?.way_points;
+  let corte = null;
+  if (Array.isArray(wayPoints) && wayPoints.length >= 2) {
+    const candidato = wayPoints[wayPoints.length - 2];
+    if (Number.isInteger(candidato) && candidato > 0 && candidato < coordenadas.length - 1) {
+      corte = candidato;
+    }
+  }
+  if (corte === null) {
+    const candidato = indiceMasLejano(coordenadas);
+    if (candidato > 0 && candidato < coordenadas.length - 1) corte = candidato;
+  }
+  if (corte === null) {
+    return { ida: ruta.ruta, regreso: null };
+  }
+
+  return {
+    ida: coleccionLinea(coordenadas.slice(0, corte + 1)),
+    regreso: coleccionLinea(coordenadas.slice(corte)),
+  };
+}

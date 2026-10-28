@@ -950,6 +950,34 @@ button, input, select, textarea { font-family: inherit; }
   color: rgba(37, 22, 5, 0.72);
 }
 
+.ruta-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 2px 0 10px;
+  font-size: 9.7px;
+  font-weight: 500;
+  color: rgba(37, 22, 5, 0.68);
+}
+
+.ruta-leyenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ruta-trazo {
+  display: inline-block;
+  width: 22px;
+  height: 0;
+  border-top: 3px solid #f1ab86;
+  border-radius: 99px;
+}
+
+.ruta-trazo--regreso {
+  border-top: 2px dashed #9cafb7;
+}
+
 .ruta-resumen-actions {
   display: flex;
   gap: 6px;

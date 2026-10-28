@@ -21,7 +21,7 @@ Incluye rutas por calles entre huellas seleccionadas, con perfiles caminando, au
 | Coordenadas | En campos separados admitir punto o coma decimal. En pegado de par admitir `lat, lng` con puntos decimales o `lat; lng` con comas decimales; sin separadores de miles |
 | Puntos superpuestos | Aplicar desplazamiento visual pequeño en píxeles a marcadores coincidentes mediante `offset` de MapLibre; no alterar coordenadas guardadas ni mostradas. El desplazamiento debe recalcularse de modo estable según zoom y conjunto de puntos; la tarjeta y el ajuste de vista usan siempre la posición geográfica real |
 | Marca | GeoHuella; cada punto se representa con una huella de perro SVG. Lema: “Cada lugar deja una huella”. |
-| Rutas | Entre 2 y 20 huellas seleccionadas; perfiles caminando, auto y bici; opción de optimizar orden e ida y vuelta. La ruta se dibuja en MapLibre y no se persiste. |
+| Rutas | Entre 2 y 20 huellas seleccionadas; perfiles caminando, auto y bici; opción de optimizar orden e ida y vuelta. La ruta se dibuja en MapLibre y no se persiste. Con ida y vuelta, la ida se muestra sólida y el regreso punteado en otro color, con leyenda en el resumen. |
 | Estilo | Panel cálido editorial sobre mapa oscuro, tipografía Poppins y paleta `#251605`, `#c57b57`, `#f1ab86`, `#f7dba7`, `#9cafb7`; interfaz en español |
 | Versiones | Estables vigentes fijadas en archivos de dependencias |
 | Pruebas | Backend pytest + pytest-django; frontend Vitest + React Testing Library |

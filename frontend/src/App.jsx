@@ -941,6 +941,12 @@ export default function App() {
                     {ruta.optimizar ? ' · orden optimizado' : ''}
                     {ruta.volverInicio ? ' · ida y vuelta' : ''}
                   </p>
+                  {ruta.volverInicio && (
+                    <div className="ruta-leyenda" aria-label="Tramos de la ruta">
+                      <span><i className="ruta-trazo ruta-trazo--ida" aria-hidden="true" />Ida</span>
+                      <span><i className="ruta-trazo ruta-trazo--regreso" aria-hidden="true" />Regreso</span>
+                    </div>
+                  )}
                   <div className="ruta-resumen-actions">
                     <button
                       type="button"

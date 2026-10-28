@@ -112,7 +112,8 @@ Formato de error, consistente con el resto de la API:
 7. La línea se dibuja en MapLibre con una fuente GeoJSON y una capa `line`.
 8. Se muestra distancia, duración, inicio y final.
 9. Se ajusta la vista a la ruta completa.
-10. “Quitar ruta” elimina la línea y el resumen, sin borrar las huellas.
+10. Con ida y vuelta, la ida se dibuja sólida y el regreso punteado; el resumen incluye la leyenda.
+11. “Quitar ruta” elimina la línea y el resumen, sin borrar las huellas.
 
 La línea debe distinguirse de los marcadores y respetar el tema visual. Las huellas siguen siendo la fuente de verdad; la ruta es una visualización temporal.
 

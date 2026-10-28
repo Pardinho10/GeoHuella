@@ -6,7 +6,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { colorSeguro } from '../lib/storage.js';
 import { offsetsPorCoordenada } from '../lib/marcadores.js';
 import { ajustarVista } from '../lib/vista.js';
-import { boundsDeRuta } from '../lib/ruta.js';
+import { boundsDeRuta, tramosDeRuta } from '../lib/ruta.js';
 import IconHuella from './IconHuella.jsx';
 
 setWorkerUrl(workerUrl);
@@ -94,6 +94,7 @@ export default function Mapa({
   const elementOffsets = offsetsPorCoordenada(elementos);
   const candidateOffsets = offsetsPorCoordenada(candidatos);
   const suggestionOffsets = offsetsPorCoordenada(sugerencias);
+  const tramos = tramosDeRuta(ruta);
 
   return (
     <MapLibreMap
@@ -122,11 +123,32 @@ export default function Mapa({
             layout={{ 'line-cap': 'round', 'line-join': 'round' }}
             paint={{ 'line-color': '#251605', 'line-width': 8, 'line-opacity': 0.62 }}
           />
+        </Source>
+      )}
+
+      {tramos.ida && (
+        <Source id="ruta-ida-geojson" type="geojson" data={tramos.ida}>
           <Layer
-            id="ruta-linea"
+            id="ruta-ida"
             type="line"
             layout={{ 'line-cap': 'round', 'line-join': 'round' }}
             paint={{ 'line-color': '#f1ab86', 'line-width': 4, 'line-opacity': 1 }}
+          />
+        </Source>
+      )}
+
+      {tramos.regreso && (
+        <Source id="ruta-regreso-geojson" type="geojson" data={tramos.regreso}>
+          <Layer
+            id="ruta-regreso"
+            type="line"
+            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+            paint={{
+              'line-color': '#9cafb7',
+              'line-width': 3,
+              'line-opacity': 1,
+              'line-dasharray': [1.8, 1.6],
+            }}
           />
         </Source>
       )}

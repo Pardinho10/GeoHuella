@@ -79,7 +79,7 @@ describe('App rutas', () => {
     expect(await screen.findByText('Ruta activa · Caminando')).toBeInTheDocument();
     expect(screen.getByText('329 m')).toBeInTheDocument();
     expect(screen.getByText(/4 min · 2 huellas/)).toBeInTheDocument();
-    expect(screen.getByTestId('route-source')).toBeInTheDocument();
+    expect(screen.getAllByTestId('route-source').length).toBeGreaterThan(0);
   });
 
   it('usa el perfil elegido y permite quitar la ruta', async () => {
@@ -98,7 +98,7 @@ describe('App rutas', () => {
 
     await user.click(screen.getByRole('button', { name: 'Quitar ruta' }));
     expect(screen.queryByText('Ruta activa · Auto')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('route-source')).not.toBeInTheDocument();
+    expect(screen.queryAllByTestId('route-source')).toHaveLength(0);
   });
 
   it('muestra el error del backend sin romper la lista', async () => {
@@ -194,5 +194,6 @@ describe('App rutas', () => {
 
     await waitFor(() => expect(calcularRuta).toHaveBeenCalledWith(expect.objectContaining({ volver_al_inicio: true })));
     expect(await screen.findByText(/ida y vuelta/)).toBeInTheDocument();
+    expect(screen.getByText('Regreso')).toBeInTheDocument();
   });
 });

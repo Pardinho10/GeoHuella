@@ -2,7 +2,7 @@
 
 **Cada lugar deja una huella.**
 
-Mapa de lugares para buscar direcciones, comparar coincidencias, guardar puntos y trazar rutas por calles. Proyecto independiente y educativo para aprender React, MapLibre GL JS y las APIs Georef/OpenStreetMap/HERE. Sin autenticación ni base de datos de negocio.
+Mapa de lugares para buscar direcciones, comparar coincidencias, guardar puntos y trazar rutas por calles, con ida y regreso diferenciados. Proyecto independiente y educativo para aprender React, MapLibre GL JS y las APIs Georef/OpenStreetMap/HERE. Sin autenticación ni base de datos de negocio.
 
 > Nombre de producto: **GeoHuella**. Carpeta y repositorio interno: `piloto-mapa`.
 

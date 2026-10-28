@@ -1,122 +1,180 @@
 # GeoHuella
 
-**Cada lugar deja una huella.**
+Mapa de lugares para buscar direcciones, comparar coincidencias, guardar puntos y trazar rutas por calles. Proyecto independiente y educativo construido con Django REST Framework, React, MapLibre GL JS y servicios abiertos de geocodificación y ruteo.
 
-Mapa de lugares para buscar direcciones, comparar coincidencias, guardar puntos y trazar rutas por calles, con ida y regreso diferenciados. Proyecto independiente y educativo para aprender React, MapLibre GL JS y las APIs Georef/OpenStreetMap/HERE. Sin autenticación ni base de datos de negocio.
+El nombre de producto es **GeoHuella**. El repositorio conserva el nombre interno `piloto-mapa` en algunas claves de `localStorage` para no perder datos existentes.
 
-> Nombre de producto: **GeoHuella**. Carpeta y repositorio interno: `piloto-mapa`.
+## Funcionalidades
 
-## Estado
+- Búsqueda de direcciones por calle, altura, ciudad y provincia.
+- Hasta cinco candidatos por búsqueda, con selección explícita antes de agregarlos.
+- Fallback de geocodificación con Nominatim y, opcionalmente, HERE.
+- Sugerencias de alturas cercanas cuando no existe la altura exacta.
+- Alta de puntos por coordenadas.
+- Marcadores con forma de huella y colores cíclicos.
+- Persistencia local de puntos en el navegador.
+- Rutas por calles entre 2 y 20 huellas.
+- Perfiles de caminata, auto y bicicleta.
+- Punto de inicio y punto final seleccionables.
+- Optimización opcional del orden de visita con VROOM.
+- Ida y regreso diferenciados en el mapa: ida sólida y regreso punteado.
+- Distancia y duración estimadas por el proveedor de ruteo.
 
-Integración local inicial verificada: backend y frontend arrancan, CORS permite el origen Vite configurado, Georef respondió a una consulta de dirección y a una consulta inversa, y las suites de ambos proyectos pasan. Resta completar la verificación manual de UX (móvil, interacción del mapa y direcciones de distintas provincias); consultar [`docs/especificacion-funcional.md`](docs/especificacion-funcional.md).
+## Stack
+
+- Backend: Python 3.12, Django 6, Django REST Framework.
+- Frontend: React, Vite, JavaScript, Bootstrap y MapLibre GL JS.
+- Mapas: OpenFreeMap con datos de OpenStreetMap y OpenMapTiles.
+- Geocodificación: Georef, Nominatim y HERE.
+- Ruteo: HeiGIT/OpenRouteService Directions y VROOM.
+- Pruebas: pytest, Vitest y React Testing Library.
 
 ## Requisitos
 
-- Python 3.12+
-- Node.js 20.19+ o 22.12+
-- npm
+- Python 3.12 o superior.
+- Node.js 20.19 o superior, o 22.12 o superior.
+- npm.
 
-## Configuración inicial
+## Instalación
 
-Desde la carpeta raíz del proyecto:
+Desde la raíz del repositorio:
+
+```bash
+npm ci
+cd frontend && npm ci
+cd ../backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+## Configuración
+
+Crear los archivos de entorno locales:
 
 ```bash
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 ```
 
-En `backend/.env`, para desarrollo local, asegurarse de tener:
+Los archivos `.env` no se versionan. La configuración mínima para desarrollo es:
 
 ```dotenv
 CORS_ALLOW_ALL=False
 CORS_ALLOWED_ORIGINS=http://localhost:5174
 ```
 
-Los archivos `.env` locales no se versionan. Cambiar `DJANGO_SECRET_KEY` antes de un entorno no local y revisar `DEBUG`, `ALLOWED_HOSTS`, el límite de solicitudes y las condiciones de uso de Georef/OpenFreeMap.
+### Variables principales del backend
 
-Para habilitar rutas, crear una API key gratuita en <https://account.heigit.org/> y configurar en `backend/.env`:
+| Variable | Uso |
+| --- | --- |
+| `DJANGO_SECRET_KEY` | Clave de Django. Cambiarla fuera de desarrollo. |
+| `DJANGO_DEBUG` | Activa o desactiva el modo debug. |
+| `ALLOWED_HOSTS` | Hosts permitidos por Django. |
+| `CORS_ALLOWED_ORIGINS` | Orígenes autorizados del frontend. |
+| `GEOREF_BASE_URL` | API de Georef. |
+| `NOMINATIM_USER_AGENT` | Identificación obligatoria ante Nominatim. |
+| `HERE_ENABLED` | Activa el fallback de HERE. |
+| `HERE_API_KEY` | API key de HERE, solo en backend. |
+| `ROUTING_ENABLED` | Activa el cálculo de rutas. |
+| `ROUTING_API_KEY` | API key de HeiGIT, solo en backend. |
+| `ROUTING_BASE_URL` | Endpoint de Directions de HeiGIT. |
+| `ROUTING_OPTIMIZATION_URL` | Endpoint de optimización VROOM. |
+| `ROUTING_CACHE_TTL` | Tiempo de caché de rutas y órdenes. |
+
+Para habilitar rutas, crear una API key gratuita en <https://account.heigit.org/> y configurar:
 
 ```dotenv
 ROUTING_ENABLED=true
 ROUTING_API_KEY=tu_api_key
 ```
 
-La key queda solo en el backend.
+Nunca exponer las API keys en el frontend ni subirlas al repositorio.
 
-## Instalar dependencias
+## Ejecución
 
-Desde la raíz, instalar el coordinador de procesos (Concurrently) y las dependencias frontend/backend:
-
-```bash
-npm ci
-cd frontend && npm ci
-cd ../backend && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
-```
-
-> En Linux/macOS, `npm ci` instala Concurrently para lanzar ambos servidores juntos. En Windows, el script `npm run dev` requiere ajustar el comando backend o ejecutarlo desde WSL.
-
-Terminal 1 — backend:
-
-```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python manage.py check
-pytest
-```
-
-Terminal 2 — frontend:
-
-```bash
-cd frontend
-npm ci
-npm test
-npm run build
-```
-
-## Ejecutar la aplicación
-
-Con las dependencias instaladas y `.env` configurados, desde la raíz basta un solo comando:
+Desde la raíz:
 
 ```bash
 npm run dev
 ```
 
-Concurrently inicia Django y Vite en paralelo, muestra sus logs prefijados (`backend`/`frontend`) y detiene el otro proceso si uno falla. Abrir <http://localhost:5174>. Para detener ambos, presionar **Ctrl+C**.
+El comando inicia Django en `http://localhost:8001` y Vite en `http://localhost:5174`. Para detener ambos procesos, presionar `Ctrl+C`.
 
 Scripts disponibles:
 
-- `npm run dev:backend`: solo Django (requiere `backend/.venv`).
-- `npm run dev:frontend`: solo Vite.
+- `npm run dev:backend`: inicia solo el backend.
+- `npm run dev:frontend`: inicia solo el frontend.
 
-El frontend usa el backend real por defecto (`VITE_USAR_MOCK=false`, `VITE_API_BASE_URL=http://localhost:8001`). Mantener `localhost` en ambos servicios evita un origen cruzado por diferencia de hostname. Para trabajar sin backend se puede activar el mock en `frontend/.env` (`VITE_USAR_MOCK=true`) y reiniciar Vite.
+El frontend usa el backend real por defecto. Para trabajar sin backend, configurar `VITE_USAR_MOCK=true` en `frontend/.env` y reiniciar Vite.
 
-## Verificación rápida
+## Endpoints
 
-- Salud: <http://localhost:8001/api/salud/> debe responder `{"estado":"ok"}`.
-- Provincias: <http://localhost:8001/api/provincias/> consulta Georef y devuelve la lista cacheada.
-- El formulario Dirección permite revisar y agregar candidatos encontrados.
-- El formulario Coordenadas agrega un punto y consulta la unidad territorial.
-- `POST /api/ruta/` calcula rutas y, con `optimizar=true`, reordena las huellas si `ROUTING_ENABLED=true` y hay API key; sin configurar responde 503.
-- Los elementos se conservan en `localStorage`; no se guardan en Django.
+- `GET /api/salud/`: estado del servicio.
+- `GET /api/provincias/`: provincias obtenidas de Georef.
+- `POST /api/geocodificar/`: búsqueda de direcciones y sugerencias.
+- `POST /api/ubicar-coordenadas/`: unidad territorial para un par de coordenadas.
+- `POST /api/ruta/`: ruta por calles, con perfiles, inicio, final y optimización opcional.
 
-Para pruebas aisladas, ejecutar `pytest` dentro de `backend/` y `npm test` dentro de `frontend/`. Las pruebas simulan Georef y no dependen de llamadas externas.
+El contrato detallado está en [`docs/contrato-api.md`](docs/contrato-api.md).
+
+## Pruebas
+
+Backend:
+
+```bash
+cd backend
+source .venv/bin/activate
+pytest
+python manage.py check
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm test
+npm run build
+```
+
+Las pruebas no dependen de llamadas reales a los proveedores externos. La verificación con servicios reales requiere configurar las API keys correspondientes.
 
 ## Estructura
 
-- `backend/`: Django REST Framework, proxy/cache de Georef y pruebas.
-- `frontend/`: React, Bootstrap, MapLibre GL JS/OpenFreeMap y pruebas.
-- `docs/contrato-api.md`: contrato compartido de API.
-- `docs/notas-georef.md`: respuestas observadas de la API oficial.
-- `docs/especificacion-funcional.md`: alcance y checklist de producto.
-- `docs/rutas-propuesta.md`: diseño y estado de la implementación de rutas.
+```text
+backend/    API Django, servicios de geocodificación y ruteo
+frontend/   Aplicación React, mapa y pruebas
+docs/       Contrato, especificación y notas técnicas
+```
+
+Documentación adicional:
+
+- [`docs/contrato-api.md`](docs/contrato-api.md)
+- [`docs/especificacion-funcional.md`](docs/especificacion-funcional.md)
+- [`docs/notas-georef.md`](docs/notas-georef.md)
+- [`docs/rutas-propuesta.md`](docs/rutas-propuesta.md)
+- [`docs/migracion-maplibre.md`](docs/migracion-maplibre.md)
+
+## Persistencia y privacidad
+
+- Los puntos se guardan en `localStorage`; no existe base de datos de negocio ni autenticación.
+- Las búsquedas de direcciones envían calle, altura, ciudad y provincia a los proveedores configurados.
+- Las rutas envían coordenadas y perfil al proveedor de ruteo.
+- Las API keys permanecen en el backend.
+- Nominatim exige un `User-Agent` identificable y un máximo de una solicitud por segundo. El backend aplica un límite y una caché.
+- Revisar los términos, la atribución y las cuotas de Georef, OpenStreetMap, HERE, HeiGIT y OpenFreeMap antes de un uso público o de alto volumen.
 
 ## Limitaciones conocidas
 
-- Persistencia local por navegador, sin cuentas ni sincronización.
-- Georef puede devolver coincidencias sin coordenadas; cuando no hay candidatos ubicables se usa Nominatim como fallback exacto, sujeto a límite de una solicitud por segundo, User-Agent y atribución OpenStreetMap. Si la altura exacta no aparece, se prueban alturas vecinas de la misma calle y se ofrecen hasta cinco sugerencias aproximadas, nunca agregadas automáticamente. Se consultan como máximo cinco candidatos por proveedor; no se garantiza una lista exhaustiva.
-- Opcionalmente se usa HERE Geocoding & Search como último fallback. La API key queda solo en el backend (`HERE_API_KEY`). Sus resultados `houseNumberType: interpolated` se muestran como sugerencias aproximadas y requieren selección explícita; revisar los términos y el plan de HERE antes de usarlo en producción.
-- Las rutas usan HeiGIT/OpenRouteService y VROOM, requieren `ROUTING_ENABLED=true` y `ROUTING_API_KEY`, y el máximo es 20 huellas. La optimización de orden es opcional; el primer punto seleccionado es el inicio. Revisar cuota y términos antes de producción.
-- Los tests simulan los geocodificadores y el proveedor de rutas; el resultado real depende de cobertura, filtros y disponibilidad de los servicios públicos.
-- MapLibre usa tiles vectoriales de OpenFreeMap (datos de OpenStreetMap/OpenMapTiles); Georef y OpenFreeMap son servicios externos: revisar sus condiciones, atribución y límites vigentes antes de uso no experimental o de alto volumen.
+- La aplicación no está preparada todavía para producción: no hay autenticación, despliegue, monitoreo ni configuración endurecida.
+- La persistencia es local y no se sincroniza entre dispositivos.
+- La cobertura de direcciones depende de Georef, Nominatim y HERE.
+- Las alturas interpoladas por HERE se muestran como sugerencias aproximadas.
+- Las rutas dependen de una API key de HeiGIT y de sus cuotas.
+- El máximo de huellas por ruta es 20.
+- La optimización usa un solo vehículo y no admite ventanas horarias ni capacidades.
+- Los tests automatizados usan respuestas simuladas de los proveedores externos.
+
+## Estado
+
+El proyecto se encuentra en etapa de piloto funcional. Las suites de backend y frontend pasan, y el flujo principal fue verificado con servicios reales en entorno local. Antes de publicarlo como servicio, faltan tareas de CI, pruebas E2E, accesibilidad, configuración de producción y revisión de términos de los proveedores.

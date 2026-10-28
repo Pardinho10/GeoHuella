@@ -1,21 +1,72 @@
+# Entorno y secretos
+.env
+.env.*
+!.env.example
+!**/.env.example
+
 # Python
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
 .venv/
 venv/
+env/
+.python-version
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
 .coverage
+.coverage.*
 htmlcov/
-*.sqlite3
-.env
+coverage.xml
+*.egg-info/
+build/
 
-# Node
+# Django
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-shm
+*.sqlite3-wal
+staticfiles/
+media/
+
+# Node y Vite
 node_modules/
 dist/
+.vite/
 coverage/
+.eslintcache
+.stylelintcache
 
-# Editors / OS
+# Logs y procesos
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.pid
+
+# Pruebas E2E y navegador
+test-results/
+playwright-report/
+playwright/.cache/
+.playwright/
+.playwright-cli/
+
+# Editores y sistema
 .vscode/
 .idea/
+*.code-workspace
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
+
+# Archivos sensibles
+*.pem
+*.key
+*.p12
+*.pfx

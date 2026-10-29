@@ -123,3 +123,12 @@ function parsearConComaDecimal(texto) {
 export function enRangoArgentina(lat, lng) {
   return lat >= -56 && lat <= -21 && lng >= -74 && lng <= -53;
 }
+
+
+export function normalizarTexto(texto) {
+  return String(texto || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}

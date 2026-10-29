@@ -11,6 +11,9 @@ El nombre de producto es **GeoHuella**. El repositorio conserva el nombre intern
 - Fallback de geocodificación con Nominatim y, opcionalmente, HERE.
 - Sugerencias de alturas cercanas cuando no existe la altura exacta.
 - Alta de puntos por coordenadas.
+- Edición del nombre de cada huella.
+- Reordenamiento de huellas para controlar el orden de la lista y de las rutas.
+- Filtro por nombre o dirección.
 - Marcadores con forma de huella y colores cíclicos.
 - Persistencia local de puntos en el navegador.
 - Rutas por calles entre 2 y 20 huellas.

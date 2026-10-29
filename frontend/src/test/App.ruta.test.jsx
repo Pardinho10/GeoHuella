@@ -64,6 +64,58 @@ describe('App rutas', () => {
     ]);
   });
 
+  it('permite editar el nombre de una huella', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText('Casa')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Editar Casa' }));
+    const input = screen.getByLabelText('Nombre de Casa');
+    await user.clear(input);
+    await user.type(input, 'Casa nueva');
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    expect(await screen.findByText('Casa nueva')).toBeInTheDocument();
+  });
+
+  it('valida que el nombre editado no quede vacío', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText('Casa')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Editar Casa' }));
+    await user.clear(screen.getByLabelText('Nombre de Casa'));
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('El nombre no puede estar vacío.');
+  });
+
+  it('permite reordenar huellas', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText('Casa')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Bajar Casa' }));
+
+    const labels = screen.getAllByRole('button', { name: /^Centrar mapa en / })
+      .map((button) => button.getAttribute('aria-label'));
+    expect(labels).toEqual(['Centrar mapa en Trabajo', 'Centrar mapa en Casa']);
+  });
+
+  it('filtra huellas por nombre o dirección', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText('Casa')).toBeInTheDocument());
+    await user.type(screen.getByLabelText('Filtrar huellas'), 'trabajo');
+
+    expect(screen.getByRole('button', { name: 'Centrar mapa en Trabajo' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Centrar mapa en Casa' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Limpiar filtro' }));
+    expect(await screen.findByRole('button', { name: 'Centrar mapa en Casa' })).toBeInTheDocument();
+  });
+
   it('muestra lugares cercanos de una huella', async () => {
     const user = userEvent.setup();
     render(<App />);

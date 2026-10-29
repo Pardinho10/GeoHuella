@@ -42,6 +42,10 @@ Campos: Nombre (opcional), Calle, Número, Ciudad y Provincia (lista obtenida de
 
 Campos: Nombre opcional, latitud y longitud. Validar número y caja aproximada argentina: latitud -56 a -21, longitud -74 a -53. Aceptar punto o coma decimal. Pegar `lat, lng` solo con punto decimal o `lat; lng` con coma decimal reparte el par en los campos. Después de validar, consultar `/api/ubicar-coordenadas/`; si no existe unidad territorial, crear el elemento con dirección “Sin dirección disponible”.
 
+### Lista de huellas
+
+La lista permite editar el nombre de una huella, subirla o bajarla para cambiar el orden base y filtrar por nombre o dirección. El filtro no altera el orden guardado ni elimina huellas; solo oculta las que no coinciden. Las acciones de edición y orden se ocultan durante el modo ruta para evitar cambios accidentales en la selección.
+
 ### Rutas
 
 El botón “Ruta” abre un panel para seleccionar entre 2 y 20 huellas. Cada fila de la lista se puede marcar o desmarcar; las filas seleccionadas se resaltan. Se eligen el punto de inicio y, opcionalmente, un punto final. También se elige el perfil (Caminando, Auto o Bici) y, opcionalmente, “Optimizar orden” y “Volver al inicio”. El inicio queda primero y el final último en el arreglo enviado; al optimizar, VROOM ordena los intermedios. Final y “Volver al inicio” son excluyentes. “Trazar ruta” llama a `POST /api/ruta/` y muestra una línea GeoJSON sobre el mapa, distancia, duración y cantidad de huellas. La ruta se cachea en el backend y no se guarda en `localStorage`; “Quitar ruta” solo elimina la visualización. Si se elimina una huella usada por la ruta, la ruta se descarta. Los errores del proveedor se muestran dentro del panel de ruta.
@@ -98,6 +102,7 @@ Pruebas obligatorias: validación, coma decimal y par pegado; lógica de lista (
 9. Colores contrastan sobre el mapa oscuro; puntos coincidentes se ven y seleccionan.
 10. Ruta: seleccionar 2–20 huellas, elegir inicio y final, probar los tres perfiles, optimización de orden, ida y vuelta, distancia/duración y “Quitar ruta”.
 11. Lugares cercanos: abrir “Cerca” en una huella, revisar categorías y distancias, centrar un lugar y cerrar la tarjeta.
-12. Panel utilizable en móvil y escritorio.
-13. Tests de ambos proyectos pasan.
-14. Consola del navegador sin errores ni advertencias relevantes.
+12. Lista: editar un nombre, subir/bajar una huella, filtrar por nombre o dirección y limpiar el filtro.
+13. Panel utilizable en móvil y escritorio.
+14. Tests de ambos proyectos pasan.
+15. Consola del navegador sin errores ni advertencias relevantes.

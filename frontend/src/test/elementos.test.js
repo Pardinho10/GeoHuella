@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   agregarCandidatos, parsearCoordenada, parsearParPegado, enRangoArgentina,
+  normalizarTexto,
 } from '../lib/elementos.js';
 
 describe('elementos', () => {
@@ -61,6 +62,12 @@ describe('elementos', () => {
     expect(parsearParPegado('-27,7951; -64,2615; -1')).toBeNull();
     expect(parsearParPegado('-27,7951;')).toBeNull();
     expect(parsearParPegado(',-64.2615')).toBeNull();
+  });
+
+  it('normaliza texto para búsquedas sin acentos', () => {
+    expect(normalizarTexto('Perú 781')).toBe('peru 781');
+    expect(normalizarTexto('  AVENIDA CÓRDOBA ')).toBe('avenida cordoba');
+    expect(normalizarTexto(null)).toBe('');
   });
 
   it('enRangoArgentina', () => {

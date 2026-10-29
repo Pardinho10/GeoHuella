@@ -33,6 +33,7 @@ npm run build
 - Lugares cercanos: el botón “Cerca” de cada huella consulta HERE y muestra bares, sanatorios, comercios y otros puntos de interés con categoría y distancia.
 - Tooltip nativo al pasar el cursor y popup al hacer clic, con nombre, dirección y coordenadas a 6 decimales. El mapa vectorial permite zoom hasta 20; OpenFreeMap publica datos hasta zoom 14 y MapLibre los amplía sin devolver tiles de error.
 - Panel colapsable; en móvil se convierte en hoja inferior y los controles de zoom se reubican por encima.
+- Cada huella se puede editar, subir o bajar dentro de la lista y filtrar por nombre o dirección. El orden de la lista se usa como orden base para las rutas sin optimización.
 
 Las sugerencias cercanas dependen de que `GET /api/geocodificar/` devuelva `error.sugerencias` en una respuesta 404. El cliente normaliza esa respuesta para no perder las alternativas. El backend puede completarlas con resultados de Nominatim o de HERE; las alturas interpoladas por HERE se presentan como aproximadas y nunca se agregan automáticamente.
 

@@ -1,6 +1,6 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { cargarElementos, guardarElementos, cargarContador, guardarContador, colorSeguro } from './lib/storage.js';
-import { agregarCandidatos, parsearCoordenada, parsearParPegado, enRangoArgentina } from './lib/elementos.js';
+import { agregarCandidatos, parsearCoordenada, parsearParPegado, enRangoArgentina, normalizarTexto } from './lib/elementos.js';
 import { obtenerProvincias, geocodificar, ubicarCoordenadas, calcularRuta, buscarLugaresCercanos } from './api';
 import IconHuella from './components/IconHuella.jsx';
 import { MAX_PUNTOS_RUTA, PERFILES_RUTA, etiquetaPerfil, formatearDistancia, formatearDuracion } from './lib/ruta.js';
@@ -77,6 +77,12 @@ export default function App() {
   const [cargandoLugares, setCargandoLugares] = useState(false);
   const [errorLugares, setErrorLugares] = useState(null);
 
+  // Edición, orden y filtro de la lista.
+  const [filtroElementos, setFiltroElementos] = useState('');
+  const [editandoId, setEditandoId] = useState(null);
+  const [nombreEdit, setNombreEdit] = useState('');
+  const [errorEdicion, setErrorEdicion] = useState(null);
+
   useEffect(() => { guardarElementos(elementos); }, [elementos]);
   useEffect(() => { guardarContador(contador); }, [contador]);
 
@@ -110,6 +116,14 @@ export default function App() {
       setErrorLugares(null);
     }
   }, [alrededorId, elementos]);
+
+  useEffect(() => {
+    if (editandoId && !elementos.some((el) => el.id === editandoId)) {
+      setEditandoId(null);
+      setNombreEdit('');
+      setErrorEdicion(null);
+    }
+  }, [editandoId, elementos]);
 
   useEffect(() => {
     if (seleccionRuta.size === 0) {
@@ -369,7 +383,48 @@ export default function App() {
     setErrorLugares(null);
   }
 
+  function empezarEdicion(el) {
+    setEditandoId(el.id);
+    setNombreEdit(el.nombre);
+    setErrorEdicion(null);
+  }
+
+  function cancelarEdicion() {
+    setEditandoId(null);
+    setNombreEdit('');
+    setErrorEdicion(null);
+  }
+
+  function guardarNombre(event) {
+    event.preventDefault();
+    const nombre = nombreEdit.trim();
+    if (!nombre) {
+      setErrorEdicion('El nombre no puede estar vacío.');
+      return;
+    }
+    if (nombre.length > 80) {
+      setErrorEdicion('El nombre no puede superar los 80 caracteres.');
+      return;
+    }
+    setElementos((prev) => prev.map((el) => (
+      el.id === editandoId ? { ...el, nombre } : el
+    )));
+    cancelarEdicion();
+  }
+
+  function moverElemento(id, delta) {
+    setElementos((prev) => {
+      const indice = prev.findIndex((el) => el.id === id);
+      const destino = indice + delta;
+      if (indice < 0 || destino < 0 || destino >= prev.length) return prev;
+      const next = [...prev];
+      [next[indice], next[destino]] = [next[destino], next[indice]];
+      return next;
+    });
+  }
+
   function abrirRuta() {
+    cancelarEdicion();
     if (ruta) {
       setSeleccionRuta(new Set(ruta.ids));
       setPerfilRuta(ruta.perfil || 'walking');
@@ -487,6 +542,11 @@ export default function App() {
   const nombreInicio = ruta ? elementos.find((el) => el.id === ruta.inicioId)?.nombre : null;
   const nombreFin = ruta ? elementos.find((el) => el.id === ruta.finId)?.nombre : null;
   const puntoAlrededor = elementos.find((el) => el.id === alrededorId) || null;
+  const consultaFiltro = normalizarTexto(filtroElementos);
+  const filtroActivo = consultaFiltro.length > 0;
+  const elementosVisibles = filtroActivo
+    ? elementos.filter((el) => normalizarTexto(`${el.nombre} ${el.direccion || ''}`).includes(consultaFiltro))
+    : elementos;
 
   return (
     <div className={`app-shell ${panelAbierto ? 'panel-abierto' : 'panel-cerrado'}`}>
@@ -861,6 +921,32 @@ export default function App() {
                 </div>
               </div>
 
+              {elementos.length > 0 && (
+                <div className="element-filter">
+                  <input
+                    type="search"
+                    className="form-control"
+                    value={filtroElementos}
+                    onChange={(e) => setFiltroElementos(e.target.value)}
+                    placeholder="Filtrar por nombre o dirección"
+                    aria-label="Filtrar huellas"
+                  />
+                  {filtroActivo && (
+                    <button
+                      type="button"
+                      className="element-filter-clear"
+                      onClick={() => setFiltroElementos('')}
+                      aria-label="Limpiar filtro"
+                    >
+                      Limpiar
+                    </button>
+                  )}
+                </div>
+              )}
+              {filtroActivo && (
+                <p className="element-filter-count">{elementosVisibles.length} de {elementos.length} huellas</p>
+              )}
+
               {modoRuta && (
                 <section className="ruta-panel" aria-label="Armar ruta entre huellas">
                   <div className="ruta-panel-head">
@@ -1051,52 +1137,118 @@ export default function App() {
                   <p>Todavía no hay puntos.</p>
                   <span>Buscá una dirección o ingresá coordenadas para empezar.</span>
                 </div>
+              ) : elementosVisibles.length === 0 ? (
+                <div className="empty-state">
+                  <p>No hay huellas que coincidan.</p>
+                  <span>Probá con otro nombre o dirección.</span>
+                </div>
               ) : (
                 <div className="element-list">
-                  {elementos.map((el) => {
+                  {elementosVisibles.map((el) => {
+                    const indice = elementos.findIndex((item) => item.id === el.id);
                     const enRuta = seleccionRuta.has(el.id);
+                    const editando = editandoId === el.id;
                     return (
-                      <div className={`element-row ${enRuta ? 'is-ruta' : ''}`} key={el.id}>
-                        {modoRuta && (
-                          <input
-                            type="checkbox"
-                            className="ruta-check"
-                            checked={enRuta}
-                            onChange={() => toggleRutaElemento(el.id)}
-                            disabled={!enRuta && seleccionRuta.size >= MAX_PUNTOS_RUTA}
-                            aria-label={`Incluir ${el.nombre} en la ruta`}
-                          />
+                      <div className={`element-row ${enRuta ? 'is-ruta' : ''} ${editando ? 'is-editing' : ''}`} key={el.id}>
+                        {editando ? (
+                          <form className="element-edit-form" onSubmit={guardarNombre}>
+                            <input
+                              className="form-control element-edit-input"
+                              value={nombreEdit}
+                              onChange={(e) => { setNombreEdit(e.target.value); setErrorEdicion(null); }}
+                              onKeyDown={(e) => { if (e.key === 'Escape') cancelarEdicion(); }}
+                              aria-label={`Nombre de ${el.nombre}`}
+                              aria-invalid={Boolean(errorEdicion)}
+                              maxLength={80}
+                              autoFocus
+                            />
+                            <div className="element-edit-actions">
+                              <button type="submit" className="btn btn-primary btn-xs">Guardar</button>
+                              <button type="button" className="btn btn-soft btn-xs" onClick={cancelarEdicion}>
+                                Cancelar
+                              </button>
+                            </div>
+                            {errorEdicion && <span className="element-edit-error" role="alert">{errorEdicion}</span>}
+                          </form>
+                        ) : (
+                          <>
+                            {modoRuta && (
+                              <input
+                                type="checkbox"
+                                className="ruta-check"
+                                checked={enRuta}
+                                onChange={() => toggleRutaElemento(el.id)}
+                                disabled={!enRuta && seleccionRuta.size >= MAX_PUNTOS_RUTA}
+                                aria-label={`Incluir ${el.nombre} en la ruta`}
+                              />
+                            )}
+                            <button
+                              type="button"
+                              className="element-main"
+                              onClick={() => (modoRuta ? toggleRutaElemento(el.id) : seleccionarElemento(el))}
+                              aria-label={modoRuta ? `Seleccionar ${el.nombre} para la ruta` : `Centrar mapa en ${el.nombre}`}
+                            >
+                              <span className="element-headline">
+                                <span className="element-dot" style={{ color: colorSeguro(el.color), background: colorSeguro(el.color) }} />
+                                <span className="element-name">{el.nombre}</span>
+                              </span>
+                              <span className="element-sub">{el.direccion || 'Sin dirección disponible'}</span>
+                            </button>
+                            {!modoRuta && (
+                              <>
+                                <button
+                                  type="button"
+                                  className="element-nearby"
+                                  onClick={() => verAlrededor(el)}
+                                  aria-label={`Ver lugares cerca de ${el.nombre}`}
+                                >
+                                  Cerca
+                                </button>
+                                <button
+                                  type="button"
+                                  className="icon-edit"
+                                  onClick={() => empezarEdicion(el)}
+                                  aria-label={`Editar ${el.nombre}`}
+                                >
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M4 20h4l10-10-4-4L4 16v4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                                    <path d="m13.5 6.5 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                                  </svg>
+                                </button>
+                                {!filtroActivo && (
+                                  <div className="element-reorder" role="group" aria-label={`Orden de ${el.nombre}`}>
+                                    <button
+                                      type="button"
+                                      onClick={() => moverElemento(el.id, -1)}
+                                      disabled={indice === 0}
+                                      aria-label={`Subir ${el.nombre}`}
+                                    >
+                                      ↑
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => moverElemento(el.id, 1)}
+                                      disabled={indice === elementos.length - 1}
+                                      aria-label={`Bajar ${el.nombre}`}
+                                    >
+                                      ↓
+                                    </button>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                            <button
+                              type="button"
+                              className="icon-delete"
+                              onClick={() => eliminar(el.id)}
+                              aria-label={`Eliminar ${el.nombre}`}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                              </svg>
+                            </button>
+                          </>
                         )}
-                        <button
-                          type="button"
-                          className="element-main"
-                          onClick={() => (modoRuta ? toggleRutaElemento(el.id) : seleccionarElemento(el))}
-                          aria-label={modoRuta ? `Seleccionar ${el.nombre} para la ruta` : `Centrar mapa en ${el.nombre}`}
-                        >
-                          <span className="element-headline">
-                            <span className="element-dot" style={{ color: colorSeguro(el.color), background: colorSeguro(el.color) }} />
-                            <span className="element-name">{el.nombre}</span>
-                          </span>
-                          <span className="element-sub">{el.direccion || 'Sin dirección disponible'}</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="element-nearby"
-                          onClick={() => verAlrededor(el)}
-                          aria-label={`Ver lugares cerca de ${el.nombre}`}
-                        >
-                          Cerca
-                        </button>
-                        <button
-                          type="button"
-                          className="icon-delete"
-                          onClick={() => eliminar(el.id)}
-                          aria-label={`Eliminar ${el.nombre}`}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                          </svg>
-                        </button>
                       </div>
                     );
                   })}

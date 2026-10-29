@@ -669,6 +669,45 @@ button, input, select, textarea { font-family: inherit; }
   border-top: 1px solid rgba(37, 22, 5, 0.1);
 }
 
+.element-filter {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.element-filter .form-control {
+  min-width: 0;
+  padding: 7px 9px;
+  font-size: 11px;
+}
+
+.element-filter-clear {
+  flex: none;
+  padding: 5px 8px;
+  font-size: 9.6px;
+  font-weight: 600;
+  color: #6c3c2a;
+  background: rgba(255, 252, 244, 0.6);
+  border: 1px solid rgba(197, 123, 87, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.element-filter-clear:hover {
+  background: rgba(241, 171, 134, 0.24);
+}
+
+.element-filter-clear:focus-visible {
+  outline: 2px solid var(--cinnamon);
+  outline-offset: 2px;
+}
+
+.element-filter-count {
+  margin: 0 0 8px;
+  font-size: 9.6px;
+  color: rgba(37, 22, 5, 0.6);
+}
+
 .element-list {
   display: flex;
   flex-direction: column;
@@ -734,6 +773,98 @@ button, input, select, textarea { font-family: inherit; }
   color: rgba(37, 22, 5, 0.69);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.icon-edit {
+  width: 24px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: rgba(37, 22, 5, 0.48);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+
+.icon-edit:hover {
+  color: var(--coffee);
+  background: rgba(156, 175, 183, 0.2);
+  border-color: rgba(156, 175, 183, 0.4);
+}
+
+.element-reorder {
+  width: 18px;
+  flex: none;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.element-reorder button {
+  width: 18px;
+  height: 15px;
+  padding: 0;
+  font-size: 10px;
+  line-height: 1;
+  color: rgba(37, 22, 5, 0.52);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.element-reorder button:hover:not(:disabled) {
+  color: var(--coffee);
+  background: rgba(37, 22, 5, 0.08);
+}
+
+.element-reorder button:disabled {
+  opacity: 0.22;
+  cursor: default;
+}
+
+.element-reorder button:focus-visible,
+.icon-edit:focus-visible {
+  outline: 2px solid var(--cinnamon);
+  outline-offset: 1px;
+}
+
+.element-row.is-editing {
+  background: rgba(255, 253, 248, 0.88);
+  border-color: rgba(197, 123, 87, 0.55);
+}
+
+.element-edit-form {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 3px;
+}
+
+.element-edit-input {
+  padding: 6px 8px;
+  font-size: 11.5px;
+}
+
+.element-edit-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.element-edit-error {
+  font-size: 9.6px;
+  color: #7d2c17;
+}
+
+.btn-xs {
+  padding: 4px 7px;
+  font-size: 9.5px;
+  border-radius: 7px;
 }
 
 .icon-delete {

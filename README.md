@@ -163,6 +163,46 @@ Documentación adicional:
 - [`docs/rutas-propuesta.md`](docs/rutas-propuesta.md)
 - [`docs/migracion-maplibre.md`](docs/migracion-maplibre.md)
 
+## Solución de problemas
+
+### El frontend muestra "Connection refused" contra `localhost:8001`
+
+El backend no está corriendo. Iniciarlo desde la raíz:
+
+```bash
+npm run dev:backend
+```
+
+O iniciar ambos servicios:
+
+```bash
+npm run dev
+```
+
+Comprobar el estado:
+
+```bash
+curl http://localhost:8001/api/salud/
+```
+
+Debe responder `{"estado":"ok"}`.
+
+Los errores de CORS que aparecen junto a `Connection refused` suelen ser consecuencia de que el backend está apagado, no un problema separado de configuración.
+
+### Los cambios en `.env` no se aplican
+
+Reiniciar el backend. `runserver` recarga archivos Python automáticamente, pero no vuelve a leer `.env`.
+
+### El puerto 8001 está ocupado
+
+Verificar el proceso:
+
+```bash
+ss -ltnp | grep 8001
+```
+
+Detener ese proceso o cambiar el puerto de Django y `VITE_API_BASE_URL`.
+
 ## Persistencia y privacidad
 
 - Los puntos se guardan en `localStorage`; no existe base de datos de negocio ni autenticación.

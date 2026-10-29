@@ -46,6 +46,10 @@ Campos: Nombre opcional, latitud y longitud. Validar número y caja aproximada a
 
 El botón “Ruta” abre un panel para seleccionar entre 2 y 20 huellas. Cada fila de la lista se puede marcar o desmarcar; las filas seleccionadas se resaltan. Se eligen el punto de inicio y, opcionalmente, un punto final. También se elige el perfil (Caminando, Auto o Bici) y, opcionalmente, “Optimizar orden” y “Volver al inicio”. El inicio queda primero y el final último en el arreglo enviado; al optimizar, VROOM ordena los intermedios. Final y “Volver al inicio” son excluyentes. “Trazar ruta” llama a `POST /api/ruta/` y muestra una línea GeoJSON sobre el mapa, distancia, duración y cantidad de huellas. La ruta se cachea en el backend y no se guarda en `localStorage`; “Quitar ruta” solo elimina la visualización. Si se elimina una huella usada por la ruta, la ruta se descarta. Los errores del proveedor se muestran dentro del panel de ruta.
 
+### Lugares cercanos
+
+Cada huella guardada tiene una acción “Cerca”. Al activarla se consulta `GET /api/lugares-cercanos/` con las coordenadas de la huella y se muestran hasta cinco lugares de HERE con nombre, categoría, distancia y dirección. La tarjeta aparece sobre la lista de puntos y se puede cerrar. Los resultados se consultan al momento, no se guardan en `localStorage` y solo se cachean en el backend durante un período corto. Si el servicio no está configurado o falla, se muestra un error dentro de la tarjeta sin afectar los puntos ni las rutas.
+
 ### Mensajes y mapa
 
 - Validaciones de cliente bajo cada campo, en español. Errores del backend en alerta Bootstrap con mensaje del contrato. Si el servidor no responde: “No se pudo conectar con el servidor”.
@@ -93,6 +97,7 @@ Pruebas obligatorias: validación, coma decimal y par pegado; lógica de lista (
 8. Zoom con controles, rueda y gestos; “Ver todos” ajusta extensión.
 9. Colores contrastan sobre el mapa oscuro; puntos coincidentes se ven y seleccionan.
 10. Ruta: seleccionar 2–20 huellas, elegir inicio y final, probar los tres perfiles, optimización de orden, ida y vuelta, distancia/duración y “Quitar ruta”.
-11. Panel utilizable en móvil y escritorio.
-11. Tests de ambos proyectos pasan.
-12. Consola del navegador sin errores ni advertencias relevantes.
+11. Lugares cercanos: abrir “Cerca” en una huella, revisar categorías y distancias, centrar un lugar y cerrar la tarjeta.
+12. Panel utilizable en móvil y escritorio.
+13. Tests de ambos proyectos pasan.
+14. Consola del navegador sin errores ni advertencias relevantes.

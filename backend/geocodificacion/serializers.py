@@ -104,3 +104,21 @@ class RutaSerializer(serializers.Serializer):
             if not self.LNG_MIN <= punto["lng"] <= self.LNG_MAX:
                 raise serializers.ValidationError("Cada punto debe estar dentro de Argentina.")
         return value
+
+
+class LugaresCercanosSerializer(serializers.Serializer):
+    LAT_MIN, LAT_MAX = -56, -21
+    LNG_MIN, LNG_MAX = -74, -53
+
+    lat = serializers.FloatField(required=True)
+    lng = serializers.FloatField(required=True)
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=10, default=5)
+
+    def validate(self, attrs):
+        lat = attrs["lat"]
+        lng = attrs["lng"]
+        if not math.isfinite(lat) or not math.isfinite(lng):
+            raise serializers.ValidationError("Las coordenadas deben ser números finitos.")
+        if not self.LAT_MIN <= lat <= self.LAT_MAX or not self.LNG_MIN <= lng <= self.LNG_MAX:
+            raise serializers.ValidationError("Las coordenadas deben estar dentro de Argentina.")
+        return attrs

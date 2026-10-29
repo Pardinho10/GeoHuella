@@ -68,3 +68,12 @@ export async function calcularRuta({ puntos = [], perfil = 'walking', volver_al_
     fin,
   };
 }
+
+
+export async function buscarLugaresCercanos(lat, lng, limit = 5) {
+  const base = [
+    { id: 'mock-bar', nombre: 'Ibra Bar', categoria: 'Bar o pub', distancia_metros: 31, direccion: 'Ibra Bar, Perú 780', lat: lat + 0.0001, lng: lng + 0.0001 },
+    { id: 'mock-sanatorio', nombre: 'Sanatorio Mock', categoria: 'Hospital', distancia_metros: 120, direccion: 'Sanatorio Mock, Av. Colón 100', lat: lat + 0.0005, lng: lng + 0.0005 },
+  ];
+  return base.slice(0, Math.max(1, Math.min(Number(limit) || 5, base.length)));
+}

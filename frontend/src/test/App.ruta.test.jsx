@@ -19,9 +19,10 @@ vi.mock('../api', () => ({
   geocodificar: vi.fn(),
   ubicarCoordenadas: vi.fn(),
   calcularRuta: vi.fn(),
+  buscarLugaresCercanos: vi.fn(),
 }));
 
-import { calcularRuta } from '../api';
+import { calcularRuta, buscarLugaresCercanos } from '../api';
 import App from '../App.jsx';
 import { CLAVE_ELEMENTOS } from '../lib/storage.js';
 
@@ -55,6 +56,30 @@ describe('App rutas', () => {
     localStorage.clear();
     localStorage.setItem(CLAVE_ELEMENTOS, JSON.stringify(ELEMENTOS));
     calcularRuta.mockReset().mockResolvedValue(RUTA);
+    buscarLugaresCercanos.mockReset().mockResolvedValue([
+      {
+        id: 'bar', nombre: 'Ibra Bar', categoria: 'Bar o pub', distancia_metros: 31,
+        direccion: 'Ibra Bar, Perú 780', lat: -27.7839, lng: -64.2669,
+      },
+    ]);
+  });
+
+  it('muestra lugares cercanos de una huella', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText('Casa')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Ver lugares cerca de Casa' }));
+
+    await waitFor(() => {
+      expect(buscarLugaresCercanos).toHaveBeenCalledWith(-27.784, -64.267, 5);
+    });
+    expect(await screen.findByText('Ibra Bar')).toBeInTheDocument();
+    expect(screen.getByText('Bar o pub')).toBeInTheDocument();
+    expect(screen.getByText('31 m')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Cerrar lugares cercanos' }));
+    expect(screen.queryByText('Ibra Bar')).not.toBeInTheDocument();
   });
 
   it('selecciona huellas, traza la ruta y muestra distancia y duración', async () => {

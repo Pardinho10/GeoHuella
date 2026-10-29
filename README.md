@@ -19,6 +19,7 @@ El nombre de producto es **GeoHuella**. El repositorio conserva el nombre intern
 - Optimización opcional del orden de visita con VROOM.
 - Ida y regreso diferenciados en el mapa: ida sólida y regreso punteado.
 - Distancia y duración estimadas por el proveedor de ruteo.
+- Consulta de lugares cercanos a una huella: bares, sanatorios, comercios y otros puntos de interés.
 
 ## Stack
 
@@ -81,6 +82,9 @@ CORS_ALLOWED_ORIGINS=http://localhost:5174
 | `ROUTING_BASE_URL` | Endpoint de Directions de HeiGIT. |
 | `ROUTING_OPTIMIZATION_URL` | Endpoint de optimización VROOM. |
 | `ROUTING_CACHE_TTL` | Tiempo de caché de rutas y órdenes. |
+| `HERE_PLACES_ENABLED` | Activa la consulta de lugares cercanos. |
+| `HERE_PLACES_URL` | Endpoint Browse de HERE. |
+| `HERE_PLACES_CACHE_TTL` | Tiempo de caché de lugares cercanos. |
 
 Para habilitar rutas, crear una API key gratuita en <https://account.heigit.org/> y configurar:
 
@@ -115,6 +119,7 @@ El frontend usa el backend real por defecto. Para trabajar sin backend, configur
 - `POST /api/geocodificar/`: búsqueda de direcciones y sugerencias.
 - `POST /api/ubicar-coordenadas/`: unidad territorial para un par de coordenadas.
 - `POST /api/ruta/`: ruta por calles, con perfiles, inicio, final y optimización opcional.
+- `GET /api/lugares-cercanos/`: lugares de HERE alrededor de una coordenada.
 
 El contrato detallado está en [`docs/contrato-api.md`](docs/contrato-api.md).
 
@@ -160,6 +165,7 @@ Documentación adicional:
 - Los puntos se guardan en `localStorage`; no existe base de datos de negocio ni autenticación.
 - Las búsquedas de direcciones envían calle, altura, ciudad y provincia a los proveedores configurados.
 - Las rutas envían coordenadas y perfil al proveedor de ruteo.
+- La consulta de lugares cercanos envía coordenadas a HERE; no se guardan en el navegador y solo se cachean por un período corto en el backend.
 - Las API keys permanecen en el backend.
 - Nominatim exige un `User-Agent` identificable y un máximo de una solicitud por segundo. El backend aplica un límite y una caché.
 - Revisar los términos, la atribución y las cuotas de Georef, OpenStreetMap, HERE, HeiGIT y OpenFreeMap antes de un uso público o de alto volumen.
@@ -171,6 +177,7 @@ Documentación adicional:
 - La cobertura de direcciones depende de Georef, Nominatim y HERE.
 - Las alturas interpoladas por HERE se muestran como sugerencias aproximadas.
 - Las rutas dependen de una API key de HeiGIT y de sus cuotas.
+- Los lugares cercanos dependen de HERE y de su cobertura, cuota y términos de uso.
 - El máximo de huellas por ruta es 20.
 - La optimización usa un solo vehículo y no admite ventanas horarias ni capacidades.
 - Los tests automatizados usan respuestas simuladas de los proveedores externos.

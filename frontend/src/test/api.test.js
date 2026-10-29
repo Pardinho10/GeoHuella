@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { obtenerProvincias, geocodificar, ubicarCoordenadas, calcularRuta } from '../api/client.js';
+import { obtenerProvincias, geocodificar, ubicarCoordenadas, calcularRuta, buscarLugaresCercanos } from '../api/client.js';
 
 describe('api client', () => {
   beforeEach(() => {
@@ -99,6 +99,21 @@ describe('api client', () => {
     }));
     await expect(calcularRuta({ puntos: [{ lat: 2, lng: 1 }, { lat: 4, lng: 3 }] }))
       .rejects.toMatchObject({ codigo: 'ruta_invalida' });
+  });
+
+  it('buscarLugaresCercanos consulta coordenadas y devuelve lugares', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ lugares: [{ nombre: 'Bar', categoria: 'Bar o pub', distancia_metros: 10 }] }),
+    }));
+    const res = await buscarLugaresCercanos(-27.77751, -64.26501, 5);
+    expect(res).toHaveLength(1);
+    expect(res[0].nombre).toBe('Bar');
+    const [url] = fetch.mock.calls[0];
+    expect(url).toContain('/api/lugares-cercanos/');
+    expect(url).toContain('lat=-27.77751');
+    expect(url).toContain('lng=-64.26501');
+    expect(url).toContain('limit=5');
   });
 
   it('fallo de conexión lanza error amigable', async () => {

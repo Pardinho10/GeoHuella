@@ -1,7 +1,7 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { cargarElementos, guardarElementos, cargarContador, guardarContador, colorSeguro } from './lib/storage.js';
 import { agregarCandidatos, parsearCoordenada, parsearParPegado, enRangoArgentina } from './lib/elementos.js';
-import { obtenerProvincias, geocodificar, ubicarCoordenadas, calcularRuta } from './api';
+import { obtenerProvincias, geocodificar, ubicarCoordenadas, calcularRuta, buscarLugaresCercanos } from './api';
 import IconHuella from './components/IconHuella.jsx';
 import { MAX_PUNTOS_RUTA, PERFILES_RUTA, etiquetaPerfil, formatearDistancia, formatearDuracion } from './lib/ruta.js';
 
@@ -71,6 +71,12 @@ export default function App() {
   const [errorRuta, setErrorRuta] = useState(null);
   const [fitRuta, setFitRuta] = useState(0);
 
+  // Lugares cercanos a una huella.
+  const [alrededorId, setAlrededorId] = useState(null);
+  const [lugaresAlrededor, setLugaresAlrededor] = useState([]);
+  const [cargandoLugares, setCargandoLugares] = useState(false);
+  const [errorLugares, setErrorLugares] = useState(null);
+
   useEffect(() => { guardarElementos(elementos); }, [elementos]);
   useEffect(() => { guardarContador(contador); }, [contador]);
 
@@ -96,6 +102,14 @@ export default function App() {
       setErrorRuta(null);
     }
   }, [elementos, ruta]);
+
+  useEffect(() => {
+    if (alrededorId && !elementos.some((el) => el.id === alrededorId)) {
+      setAlrededorId(null);
+      setLugaresAlrededor([]);
+      setErrorLugares(null);
+    }
+  }, [alrededorId, elementos]);
 
   useEffect(() => {
     if (seleccionRuta.size === 0) {
@@ -333,6 +347,28 @@ export default function App() {
     setFoco([el.lat, el.lng]);
   }
 
+  async function verAlrededor(el) {
+    setAlrededorId(el.id);
+    setLugaresAlrededor([]);
+    setErrorLugares(null);
+    setCargandoLugares(true);
+    setFoco([el.lat, el.lng]);
+    try {
+      const lugares = await buscarLugaresCercanos(el.lat, el.lng, 5);
+      setLugaresAlrededor(lugares);
+    } catch (err) {
+      setErrorLugares(err?.message || 'No se pudieron consultar los lugares cercanos.');
+    } finally {
+      setCargandoLugares(false);
+    }
+  }
+
+  function cerrarAlrededor() {
+    setAlrededorId(null);
+    setLugaresAlrededor([]);
+    setErrorLugares(null);
+  }
+
   function abrirRuta() {
     if (ruta) {
       setSeleccionRuta(new Set(ruta.ids));
@@ -450,6 +486,7 @@ export default function App() {
   const elegidosRuta = elementos.filter((el) => seleccionRuta.has(el.id));
   const nombreInicio = ruta ? elementos.find((el) => el.id === ruta.inicioId)?.nombre : null;
   const nombreFin = ruta ? elementos.find((el) => el.id === ruta.finId)?.nombre : null;
+  const puntoAlrededor = elementos.find((el) => el.id === alrededorId) || null;
 
   return (
     <div className={`app-shell ${panelAbierto ? 'panel-abierto' : 'panel-cerrado'}`}>
@@ -916,6 +953,52 @@ export default function App() {
                 </section>
               )}
 
+              {puntoAlrededor && (
+                <section className="alrededor" aria-live="polite">
+                  <div className="alrededor-head">
+                    <div>
+                      <span className="ruta-kicker">Alrededor de</span>
+                      <h3>{puntoAlrededor.nombre}</h3>
+                    </div>
+                    <button
+                      type="button"
+                      className="icon-delete"
+                      onClick={cerrarAlrededor}
+                      aria-label="Cerrar lugares cercanos"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                  </div>
+                  {cargandoLugares && <p className="alrededor-estado">Buscando lugares cerca…</p>}
+                  {errorLugares && <p className="ruta-error" role="alert">{errorLugares}</p>}
+                  {!cargandoLugares && !errorLugares && lugaresAlrededor.length === 0 && (
+                    <p className="alrededor-estado">No encontramos lugares cerca de esta huella.</p>
+                  )}
+                  {lugaresAlrededor.length > 0 && (
+                    <div className="alrededor-lista">
+                      {lugaresAlrededor.map((lugar, i) => (
+                        <button
+                          key={lugar.id || `${lugar.lat}-${lugar.lng}-${i}`}
+                          type="button"
+                          className="alrededor-item"
+                          onClick={() => setFoco([lugar.lat, lugar.lng])}
+                        >
+                          <span className="alrededor-item-head">
+                            <strong>{lugar.nombre}</strong>
+                            <span>{formatearDistancia(lugar.distancia_metros)}</span>
+                          </span>
+                          <span className="alrededor-categoria">{lugar.categoria || 'Lugar'}</span>
+                          {lugar.direccion && <span className="alrededor-direccion">{lugar.direccion}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <p className="alrededor-nota">Datos de HERE. Se consultan al momento y no se guardan.</p>
+                </section>
+              )}
+
               {!modoRuta && ruta && (
                 <section className="ruta-resumen" aria-live="polite">
                   <div className="ruta-resumen-head">
@@ -995,6 +1078,14 @@ export default function App() {
                             <span className="element-name">{el.nombre}</span>
                           </span>
                           <span className="element-sub">{el.direccion || 'Sin dirección disponible'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="element-nearby"
+                          onClick={() => verAlrededor(el)}
+                          aria-label={`Ver lugares cerca de ${el.nombre}`}
+                        >
+                          Cerca
                         </button>
                         <button
                           type="button"

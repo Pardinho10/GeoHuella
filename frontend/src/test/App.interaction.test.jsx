@@ -21,6 +21,7 @@ vi.mock('../api', () => ({
   ]),
   ubicarCoordenadas: vi.fn(),
   calcularRuta: vi.fn(),
+  buscarLugaresCercanos: vi.fn(),
 }));
 
 import { geocodificar, ubicarCoordenadas } from '../api';

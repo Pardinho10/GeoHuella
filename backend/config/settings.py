@@ -85,6 +85,15 @@ HERE_MAX_RETRIES = config("HERE_MAX_RETRIES", default=1, cast=int)
 HERE_RETRY_DELAY = config("HERE_RETRY_DELAY", default=1.0, cast=float)
 HERE_CACHE_TTL = config("HERE_CACHE_TTL", default=86400, cast=int)
 
+# Lugares cercanos (HERE Browse). Caché corta; no persistencia de resultados.
+HERE_PLACES_ENABLED = config("HERE_PLACES_ENABLED", default=False, cast=bool)
+HERE_PLACES_URL = config(
+    "HERE_PLACES_URL",
+    default="https://browse.search.hereapi.com/v1/browse",
+)
+HERE_PLACES_TIMEOUT = config("HERE_PLACES_TIMEOUT", default=8, cast=int)
+HERE_PLACES_CACHE_TTL = config("HERE_PLACES_CACHE_TTL", default=1800, cast=int)
+
 # Rutas: HeiGIT/OpenRouteService Directions v2 (solo backend).
 ROUTING_ENABLED = config("ROUTING_ENABLED", default=False, cast=bool)
 ROUTING_API_KEY = config("ROUTING_API_KEY", default="")

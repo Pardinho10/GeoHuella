@@ -757,6 +757,139 @@ button, input, select, textarea { font-family: inherit; }
 
 /* ---------- Rutas ---------- */
 
+.alrededor {
+  margin: 0 0 10px;
+  padding: 12px;
+  background: rgba(255, 252, 244, 0.68);
+  border: 1px solid rgba(156, 175, 183, 0.5);
+  border-radius: 14px;
+  box-shadow: 0 8px 18px rgba(37, 22, 5, 0.06);
+}
+
+.alrededor-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.alrededor-head h3 {
+  margin: 1px 0 0;
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--coffee);
+}
+
+.alrededor-estado {
+  margin: 9px 0 0;
+  font-size: 10.4px;
+  color: rgba(37, 22, 5, 0.7);
+}
+
+.alrededor-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 9px;
+}
+
+.alrededor-item {
+  display: block;
+  width: 100%;
+  padding: 7px 8px;
+  text-align: left;
+  color: var(--coffee);
+  background: rgba(255, 252, 244, 0.62);
+  border: 1px solid rgba(37, 22, 5, 0.1);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+}
+
+.alrededor-item:hover {
+  background: rgba(255, 253, 248, 0.9);
+  border-color: rgba(156, 175, 183, 0.8);
+  transform: translateY(-1px);
+}
+
+.alrededor-item:focus-visible {
+  outline: 2px solid var(--cinnamon);
+  outline-offset: 2px;
+}
+
+.alrededor-item-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.alrededor-item-head strong {
+  overflow: hidden;
+  font-size: 10.8px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alrededor-item-head span {
+  flex: none;
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(37, 22, 5, 0.58);
+}
+
+.alrededor-categoria {
+  display: block;
+  margin-top: 1px;
+  font-size: 9.6px;
+  font-weight: 500;
+  color: #6c3c2a;
+}
+
+.alrededor-direccion {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  font-size: 9.4px;
+  color: rgba(37, 22, 5, 0.62);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alrededor-nota {
+  margin: 8px 0 0;
+  font-size: 9px;
+  line-height: 1.4;
+  color: rgba(37, 22, 5, 0.56);
+}
+
+.element-nearby {
+  flex: none;
+  align-self: center;
+  padding: 5px 6px;
+  font-size: 9.2px;
+  font-weight: 600;
+  color: rgba(37, 22, 5, 0.68);
+  background: rgba(156, 175, 183, 0.12);
+  border: 1px solid rgba(37, 22, 5, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+
+.element-nearby:hover {
+  color: var(--coffee);
+  background: rgba(156, 175, 183, 0.25);
+  border-color: rgba(156, 175, 183, 0.65);
+}
+
+.element-nearby:focus-visible {
+  outline: 2px solid var(--cinnamon);
+  outline-offset: 2px;
+}
+
 .ruta-panel {
   margin: 0 0 10px;
   padding: 12px;

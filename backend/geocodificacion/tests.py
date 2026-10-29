@@ -12,6 +12,7 @@ def _clear_cache(monkeypatch):
     monkeypatch.setattr("django.conf.settings.HERE_API_KEY", "")
     monkeypatch.setattr("django.conf.settings.ROUTING_ENABLED", False)
     monkeypatch.setattr("django.conf.settings.ROUTING_API_KEY", "")
+    monkeypatch.setattr("django.conf.settings.HERE_PLACES_ENABLED", False)
     cache.clear()
     yield
     cache.clear()
@@ -1194,3 +1195,85 @@ def test_ruta_proveedor_timeout(client, monkeypatch):
                side_effect=req.Timeout("timeout")):
         res = client.post("/api/ruta/", {"puntos": _puntos_ruta()}, content_type="application/json")
     assert res.status_code == 502
+
+
+def _places_item(title="Ibra Bar", category="Bar o pub", distance=31, lat=-27.7774, lng=-64.2649):
+    return {
+        "id": f"place:{title}",
+        "title": title,
+        "resultType": "place",
+        "distance": distance,
+        "position": {"lat": lat, "lng": lng},
+        "address": {"label": f"{title}, Santiago del Estero, Argentina"},
+        "categories": [{"id": "100", "name": category, "primary": True}],
+    }
+
+
+def _places_payload(items=None):
+    return {"items": items if items is not None else [_places_item()]}
+
+
+def test_lugares_cercanos_ok(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.HERE_PLACES_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.HERE_API_KEY", "test-key")
+    with patch("geocodificacion.services.places.requests.get",
+               return_value=_mock_response(_places_payload())) as get:
+        res = client.get("/api/lugares-cercanos/", {
+            "lat": "-27.77751", "lng": "-64.26501", "limit": 5,
+        })
+    assert res.status_code == 200
+    lugares = res.json()["lugares"]
+    assert lugares == [{
+        "id": "place:Ibra Bar",
+        "nombre": "Ibra Bar",
+        "categoria": "Bar o pub",
+        "distancia_metros": 31.0,
+        "direccion": "Ibra Bar, Santiago del Estero, Argentina",
+        "lat": -27.7774,
+        "lng": -64.2649,
+    }]
+    params = get.call_args.kwargs["params"]
+    assert params["apiKey"] == "test-key"
+    assert params["at"] == "-27.77751,-64.26501"
+    assert params["limit"] == 5
+
+
+def test_lugares_cercanos_cachea(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.HERE_PLACES_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.HERE_API_KEY", "test-key")
+    with patch("geocodificacion.services.places.requests.get",
+               return_value=_mock_response(_places_payload())) as get:
+        client.get("/api/lugares-cercanos/", {"lat": "-27.77751", "lng": "-64.26501"})
+        client.get("/api/lugares-cercanos/", {"lat": "-27.77751", "lng": "-64.26501"})
+    assert get.call_count == 1
+
+
+def test_lugares_cercanos_sin_configurar(client):
+    with patch("geocodificacion.services.places.requests.get") as get:
+        res = client.get("/api/lugares-cercanos/", {"lat": "-27.77751", "lng": "-64.26501"})
+    assert res.status_code == 503
+    assert res.json()["error"]["codigo"] == "lugares_no_configurado"
+    get.assert_not_called()
+
+
+def test_lugares_cercanos_fuera_de_rango(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.HERE_PLACES_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.HERE_API_KEY", "test-key")
+    res = client.get("/api/lugares-cercanos/", {"lat": "0", "lng": "0"})
+    assert res.status_code == 400
+
+
+def test_lugares_cercanos_proveedor_error(client, monkeypatch, caplog):
+    import logging
+    caplog.set_level(logging.WARNING, logger="geocodificacion.services.places")
+    monkeypatch.setattr("django.conf.settings.HERE_PLACES_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.HERE_API_KEY", "test-key")
+    mock = MagicMock()
+    mock.status_code = 500
+    mock.text = "SECRET-PLACES-BODY"
+    mock.headers = {}
+    with patch("geocodificacion.services.places.requests.get", return_value=mock):
+        res = client.get("/api/lugares-cercanos/", {"lat": "-27.77751", "lng": "-64.26501"})
+    assert res.status_code == 502
+    assert res.json()["error"]["codigo"] == "lugares_no_disponible"
+    assert "SECRET-PLACES-BODY" not in caplog.text

@@ -2,11 +2,15 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 
-from .serializers import GeocodificarSerializer, UbicarCoordenadasSerializer, RutaSerializer
+from .serializers import (
+    GeocodificarSerializer, UbicarCoordenadasSerializer, RutaSerializer,
+    LugaresCercanosSerializer,
+)
 from .services.georef import GeorefClient, GeorefServiceError
 from .services.nominatim import NominatimClient, NominatimServiceError
 from .services.here import HereClient, HereServiceError
 from .services.routing import RoutingClient, RoutingServiceError
+from .services.places import HerePlacesClient, HerePlacesServiceError
 
 
 @api_view(["GET"])
@@ -176,3 +180,29 @@ def ruta(request):
         )
 
     return Response(resultado)
+
+
+@api_view(["GET"])
+def lugares_cercanos(request):
+    serializer = LugaresCercanosSerializer(data=request.query_params)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+
+    client = HerePlacesClient()
+    if not client.disponible:
+        return Response(
+            {"error": {"codigo": "lugares_no_configurado",
+                       "mensaje": "El servicio de lugares cercanos no está configurado."}},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    try:
+        lugares = client.buscar(data["lat"], data["lng"], data["limit"])
+    except HerePlacesServiceError:
+        return Response(
+            {"error": {"codigo": "lugares_no_disponible",
+                       "mensaje": "No se pudieron consultar los lugares cercanos."}},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    return Response({"lugares": lugares})

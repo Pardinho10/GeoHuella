@@ -74,3 +74,14 @@ export async function calcularRuta({ puntos, perfil = 'walking', volver_al_inici
   }
   return data;
 }
+
+
+export async function buscarLugaresCercanos(lat, lng, limit = 5) {
+  const params = new URLSearchParams({
+    lat: String(lat),
+    lng: String(lng),
+    limit: String(limit),
+  });
+  const data = await request(`/api/lugares-cercanos/?${params.toString()}`);
+  return Array.isArray(data?.lugares) ? data.lugares : [];
+}

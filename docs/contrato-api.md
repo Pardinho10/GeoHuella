@@ -188,7 +188,48 @@ Calcula una ruta por calles entre 2 y 20 huellas. Requiere `ROUTING_ENABLED=true
 - Con `volver_al_inicio=true`, el frontend divide la geometría usando el penúltimo `properties.way_points`: ida sólida y regreso punteado. Si falta `way_points`, usa el punto más lejano como corte aproximado.
 - Solo se envían coordenadas y perfil al proveedor; no se envían nombres de lugares.
 
-## 6. Errores uniformes
+## 6. Lugares cercanos — `GET /api/lugares-cercanos/`
+
+Devuelve hasta 10 lugares de HERE alrededor de una coordenada. Requiere `HERE_PLACES_ENABLED=true` y `HERE_API_KEY`; la key queda solo en el backend. Los resultados se cachean durante `HERE_PLACES_CACHE_TTL` segundos y no se persisten en `localStorage`.
+
+### Parámetros
+
+| Parámetro | Tipo | Obligatorio | Descripción |
+|---|---|---|---|
+| `lat` | número | sí | Latitud dentro de Argentina. |
+| `lng` | número | sí | Longitud dentro de Argentina. |
+| `limit` | entero | no | Entre 1 y 10; default `5`. |
+
+Ejemplo:
+
+```http
+GET /api/lugares-cercanos/?lat=-27.77751&lng=-64.26501&limit=5
+```
+
+`200 OK`
+
+```json
+{
+  "lugares": [
+    {
+      "id": "here:pds:place:...",
+      "nombre": "Ibra Bar",
+      "categoria": "Bar o pub",
+      "distancia_metros": 31.0,
+      "direccion": "Ibra Bar, Perú 780, G4200 Santiago del Estero, Argentina",
+      "lat": -27.7777,
+      "lng": -64.26524
+    }
+  ]
+}
+```
+
+- `categoria` puede ser `null` si HERE no informa categoría.
+- `distancia_metros` puede ser `null` si HERE no informa distancia.
+- Los resultados son una referencia del proveedor, no una verdad absoluta; pueden estar desactualizados.
+- No se guardan en la base local ni se envían nombres de huellas al proveedor.
+
+## 7. Errores uniformes
 
 Todos los errores usan esta envoltura JSON:
 
@@ -209,7 +250,9 @@ Todos los errores usan esta envoltura JSON:
 | 429 | `demasiadas_solicitudes` | Límite de solicitudes del backend. |
 | 502 | `servicio_no_disponible` | Georef/Nominatim falló, agotó el timeout o devolvió una respuesta inesperada. Un fallo de HERE se degrada a las sugerencias disponibles, no a 502. |
 | 502 | `routing_no_disponible` | El proveedor de rutas o la optimización falló, agotó el timeout o devolvió una respuesta inválida. |
+| 502 | `lugares_no_disponible` | El proveedor de lugares cercanos falló o devolvió una respuesta inválida. |
 | 503 | `routing_no_configurado` | `ROUTING_ENABLED` está apagado o falta `ROUTING_API_KEY`. |
+| 503 | `lugares_no_configurado` | `HERE_PLACES_ENABLED` está apagado o falta `HERE_API_KEY`. |
 
 Los errores 400 pueden incluir `campos`, con mensajes por campo:
 
@@ -223,14 +266,14 @@ Los errores 400 pueden incluir `campos`, con mensajes por campo:
 }
 ```
 
-## 7. Contrato visual de sugerencias
+## 8. Contrato visual de sugerencias
 
 - En un 404 con `error.sugerencias`, el frontend muestra una sección separada “Ubicaciones cercanas” con dirección y punto de mapa por candidato. Se informa que no se encontró la altura exacta.
 - La persona puede seleccionar una o varias sugerencias y agregarlas explícitamente. Nunca se agregan automáticamente ni se presentan como coincidencia exacta.
 - Mostrar el indicador de aproximación “Cercana · verificá antes de agregar”. Los marcadores de sugerencias usan estilo distinto a candidatos exactos.
 - Una respuesta 404 sin `sugerencias` conserva el estado de error no encontrado normal.
 
-## 8. Reglas compartidas del cliente
+## 9. Reglas compartidas del cliente
 
 - El frontend agrega candidatos elegidos como elementos locales; no existe endpoint para guardar ni eliminar elementos.
 - El nombre se asigna en el cliente. El contador monotónico solo avanza cuando se crea un elemento sin nombre provisto por el usuario; buscar candidatos o crear elementos con nombre personalizado no lo incrementa. Borrar elementos nunca reduce el contador ni reutiliza números.

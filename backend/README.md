@@ -32,6 +32,7 @@ Endpoints base `/api/`:
 - `geocodificar/`: búsqueda de direcciones; puede devolver candidatos de Georef o de Nominatim.
 - `ubicar-coordenadas/`: unidad territorial para un par lat/lng.
 - `ruta/`: ruta por calles entre 2 y 20 puntos; requiere `ROUTING_ENABLED=true` y `ROUTING_API_KEY`.
+- `lugares-cercanos/`: lugares de HERE alrededor de una coordenada; requiere `HERE_PLACES_ENABLED=true` y `HERE_API_KEY`.
 
 ## Búsqueda y sugerencias
 
@@ -40,6 +41,7 @@ Endpoints base `/api/`:
 - Si la altura exacta no aparece, se prueban alturas vecinas de la misma calle (`-1, +1, -2, +2, -10, +10, -100, +100`) y se devuelven hasta cinco sugerencias en un `404`; nunca se agregan automáticamente.
 - Todas las consultas a Nominatim comparten un lock de archivo entre procesos del mismo host, un intervalo mínimo de 1.1 s y caché. Las sugerencias cercanas tienen un presupuesto máximo configurable (`NOMINATIM_NEARBY_BUDGET_SECONDS`, 6 s por defecto) para acotar la latencia de un 404 sin resultados.
 - HERE es opcional y se activa con `HERE_ENABLED=true` y `HERE_API_KEY`. Los resultados `PA`/`MPA` se devuelven como candidatos; los `interpolated` se devuelven como sugerencias aproximadas. Ante HTTP 429 se reintenta de forma acotada (`HERE_MAX_RETRIES`, `HERE_RETRY_DELAY`).
+- Los lugares cercanos usan HERE Browse y se activan por separado con `HERE_PLACES_ENABLED=true`. La respuesta se cachea `HERE_PLACES_CACHE_TTL` segundos y no se persiste.
 
 ## Rutas
 

@@ -3,6 +3,14 @@
 Todas las versiones relevantes de GeoHuella se documentan en este archivo.
 El formato sigue [Versionado Semántico](https://semver.org/lang/es/).
 
+## [0.1.1] - 2026-10-30
+
+### Corregido
+
+- El backend de desarrollo se instala como servicio de usuario con reinicio automático en Linux con systemd, para evitar que `localhost:8001` quede sin respuesta al cerrar la terminal o si Django se detiene.
+- El arranque conjunto reutiliza el backend persistente cuando ya está activo.
+- Se agregaron comandos para comprobar estado, instalar el servicio y consultar logs.
+
 ## [0.1.0] - 2026-10-30
 
 Primera versión funcional del piloto.

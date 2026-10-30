@@ -7,7 +7,7 @@ Fuente de verdad compartida entre backend y frontend. Base `/api/`. JSON UTF-8. 
 `200 OK`
 
 ```json
-{ "estado": "ok", "version": "0.1.0" }
+{ "estado": "ok", "version": "0.1.1" }
 ```
 
 ## 2. Provincias — `GET /api/provincias/`

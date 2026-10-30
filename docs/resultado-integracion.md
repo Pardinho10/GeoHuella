@@ -12,7 +12,7 @@
 
 ## Verificado
 
-- `GET /api/salud/`: 200 `{ "estado": "ok", "version": "0.1.0" }`.
+- `GET /api/salud/`: 200 `{ "estado": "ok", "version": "0.1.1" }`.
 - `GET /api/provincias/`: 200, 24 provincias; CORS responde con `Access-Control-Allow-Origin: http://localhost:5173`.
 - Preflight `OPTIONS` para POST JSON: 200 con métodos/cabeceras CORS esperados.
 - `POST /api/geocodificar/` para Avenida Corrientes 1000, CABA: 200 con candidato ubicado (`-34.603669473, -58.380975283`).

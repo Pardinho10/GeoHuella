@@ -1,12 +1,14 @@
 {
   "name": "piloto-mapa",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Scripts raíz para ejecutar conjuntamente backend y frontend de GeoHuella",
   "scripts": {
     "dev:backend": "cd backend && .venv/bin/python manage.py runserver localhost:8001",
     "dev:frontend": "npm --prefix frontend run dev -- --host localhost --port 5174",
-    "dev": "concurrently --kill-others --names backend,frontend --prefix-colors blue,green \"npm:dev:backend\" \"npm:dev:frontend\""
+    "dev": "bash scripts/geohuella-start.sh",
+    "install:backend-service": "bash scripts/install-backend-service.sh",
+    "status": "bash scripts/status.sh"
   },
   "devDependencies": {
     "concurrently": "9.2.5"

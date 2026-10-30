@@ -48,6 +48,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 *.pid
+backend/logs/
 
 # Pruebas E2E y navegador
 test-results/

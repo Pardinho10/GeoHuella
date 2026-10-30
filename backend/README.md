@@ -1,6 +1,6 @@
 # Backend — GeoHuella
 
-Versión actual: `0.1.0`, leída desde `../VERSION`.
+Versión actual: `0.1.1`, leída desde `../VERSION`.
 
 API Django + Django REST Framework que actúa como proxy/cache de la API pública de Georef y usa Nominatim (OpenStreetMap) y, opcionalmente, HERE Geocoding & Search como respaldos cuando faltan coordenadas.
 

@@ -4,7 +4,7 @@ Mapa de lugares para buscar direcciones, comparar coincidencias, guardar puntos 
 
 El nombre de producto es **GeoHuella**. El repositorio conserva el nombre interno `piloto-mapa` en algunas claves de `localStorage` para no perder datos existentes.
 
-**Versión actual:** `0.1.0`. El historial de cambios está en [`CHANGELOG.md`](CHANGELOG.md). La versión se muestra en el panel y en `GET /api/salud/`.
+**Versión actual:** `0.1.1`. El historial de cambios está en [`CHANGELOG.md`](CHANGELOG.md). La versión se muestra en el panel y en `GET /api/salud/`.
 
 ## Funcionalidades
 
@@ -109,12 +109,14 @@ Desde la raíz:
 npm run dev
 ```
 
-El comando inicia Django en `http://localhost:8001` y Vite en `http://localhost:5174`. Para detener ambos procesos, presionar `Ctrl+C`.
+El comando inicia Django en `http://localhost:8001` y Vite en `http://localhost:5174`. Para detener los procesos iniciados por el comando, presionar `Ctrl+C`. Si el backend está instalado como servicio persistente, `npm run dev` lo reutiliza y solo inicia Vite.
 
 Scripts disponibles:
 
-- `npm run dev:backend`: inicia solo el backend.
+- `npm run dev:backend`: inicia solo el backend en la terminal.
 - `npm run dev:frontend`: inicia solo el frontend.
+- `npm run status`: comprueba que frontend y backend respondan.
+- `npm run install:backend-service`: instala un servicio de usuario con reinicio automático en Linux con systemd. Tras instalarlo, Django permanece disponible aunque se cierre la terminal; detenerlo con `systemctl --user stop geohuella-backend.service`. Este es un servicio de desarrollo local, no un reemplazo de un despliegue de producción.
 
 El frontend usa el backend real por defecto. Para trabajar sin backend, configurar `VITE_USAR_MOCK=true` en `frontend/.env` y reiniciar Vite.
 
@@ -165,15 +167,39 @@ Documentación adicional:
 - [`docs/notas-georef.md`](docs/notas-georef.md)
 - [`docs/rutas-propuesta.md`](docs/rutas-propuesta.md)
 - [`docs/migracion-maplibre.md`](docs/migracion-maplibre.md)
+- [`docs/diagnostico-backend-recurrente.md`](docs/diagnostico-backend-recurrente.md)
+- [`CHANGELOG.md`](CHANGELOG.md)
+- [`VERSION`](VERSION)
 
 ## Solución de problemas
 
 ### El frontend muestra "Connection refused" contra `localhost:8001`
 
-El backend no está corriendo. Iniciarlo desde la raíz:
+El backend no está corriendo. Comprobar el estado:
 
 ```bash
-npm run dev:backend
+npm run status
+```
+
+Para iniciarlo junto al frontend:
+
+```bash
+npm run dev
+```
+
+En Linux con systemd, instalarlo para que se recupere automáticamente si se cae o se reinicia el equipo:
+
+```bash
+npm run install:backend-service
+systemctl --user status geohuella-backend.service
+```
+
+Para ver los logs o detener el servicio:
+
+```bash
+journalctl --user -u geohuella-backend.service -f
+systemctl --user stop geohuella-backend.service
+systemctl --user start geohuella-backend.service
 ```
 
 O iniciar ambos servicios:
@@ -188,9 +214,9 @@ Comprobar el estado:
 curl http://localhost:8001/api/salud/
 ```
 
-Debe responder `{"estado":"ok","version":"0.1.0"}`.
+Debe responder `{"estado":"ok","version":"0.1.1"}`.
 
-Los errores de CORS que aparecen junto a `Connection refused` suelen ser consecuencia de que el backend está apagado, no un problema separado de configuración.
+Los errores de CORS que aparecen junto a `Connection refused` suelen ser consecuencia de que el backend está apagado, no un problema separado de configuración. El servicio persistente gestiona fallas del backend; si la consola muestra `Could not be loaded` para una imagen de MapLibre, es un aviso separado sobre el sprite del estilo cartográfico.
 
 ### Los cambios en `.env` no se aplican
 

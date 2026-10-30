@@ -70,6 +70,38 @@ function ControlVista({ foco, fitAll, elementos }) {
   return null;
 }
 
+function ControlImagenesEstilo() {
+  const maps = useMap();
+  const mapRef = maps?.current;
+  const map = mapRef?.getMap?.() || mapRef;
+
+  useEffect(() => {
+    if (!map?.setMissingStyleImageResolver) return undefined;
+
+    map.setMissingStyleImageResolver((id) => {
+      if (id !== 'circle-11' || map.hasImage(id)) return;
+      const size = 22;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const context = canvas.getContext('2d');
+      if (!context) return;
+      context.beginPath();
+      context.arc(size / 2, size / 2, 7, 0, Math.PI * 2);
+      context.fillStyle = '#d7d4cc';
+      context.fill();
+      context.lineWidth = 1.5;
+      context.strokeStyle = '#77736a';
+      context.stroke();
+      map.addImage(id, context.getImageData(0, 0, size, size));
+    });
+
+    return () => map.setMissingStyleImageResolver(null);
+  }, [map]);
+
+  return null;
+}
+
 function ControlLugares({ origen, lugares }) {
   const maps = useMap();
   const map = maps?.current;
@@ -146,6 +178,7 @@ export default function Mapa({
       style={{ width: '100%', height: '100%' }}
     >
       <NavigationControl position="bottom-right" showCompass={false} />
+      <ControlImagenesEstilo />
       <ControlVista foco={foco} fitAll={fitAll} elementos={elementos} />
       <ControlLugares origen={origenLugares} lugares={lugares} />
       <ControlRuta ruta={ruta} fitRuta={fitRuta} />

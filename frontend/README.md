@@ -1,6 +1,6 @@
 # Frontend — GeoHuella
 
-Versión actual: `0.1.0`, leída desde `../VERSION` y expuesta en el panel como `v0.1.0`.
+Versión actual: `0.1.1`, leída desde `../VERSION` y expuesta en el panel como `v0.1.1`.
 
 SPA en React + Vite (JavaScript), Bootstrap 5 y MapLibre GL JS con tiles vectoriales de OpenFreeMap. Interfaz en español, con panel cálido editorial sobre mapa oscuro, tipografía Poppins y la paleta `#251605`, `#c57b57`, `#f1ab86`, `#f7dba7`, `#9cafb7`.
 

@@ -4,6 +4,7 @@ import { agregarCandidatos, parsearCoordenada, parsearParPegado, enRangoArgentin
 import { obtenerProvincias, geocodificar, ubicarCoordenadas, calcularRuta, buscarLugaresCercanos } from './api';
 import IconHuella from './components/IconHuella.jsx';
 import { MAX_PUNTOS_RUTA, PERFILES_RUTA, etiquetaPerfil, formatearDistancia, formatearDuracion } from './lib/ruta.js';
+import { VERSION } from './version.js';
 
 const Mapa = React.lazy(() => import('./components/Mapa.jsx'));
 
@@ -614,7 +615,7 @@ export default function App() {
                 <span className="brand-mark" aria-hidden="true"><IconHuella size={20} /></span>
                 <div>
                   <span className="eyebrow">Cada lugar deja una huella</span>
-                  <h1>GeoHuella</h1>
+                  <h1>GeoHuella <span className="app-version">v{VERSION}</span></h1>
                 </div>
               </div>
               <button

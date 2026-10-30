@@ -11,11 +11,12 @@ from .services.nominatim import NominatimClient, NominatimServiceError
 from .services.here import HereClient, HereServiceError
 from .services.routing import RoutingClient, RoutingServiceError
 from .services.places import HerePlacesClient, HerePlacesServiceError
+from config.version import VERSION
 
 
 @api_view(["GET"])
 def salud(request):
-    return Response({"estado": "ok"})
+    return Response({"estado": "ok", "version": VERSION})
 
 
 @api_view(["GET"])

@@ -4,6 +4,8 @@ Mapa de lugares para buscar direcciones, comparar coincidencias, guardar puntos 
 
 El nombre de producto es **GeoHuella**. El repositorio conserva el nombre interno `piloto-mapa` en algunas claves de `localStorage` para no perder datos existentes.
 
+**Versión actual:** `0.1.0`. El historial de cambios está en [`CHANGELOG.md`](CHANGELOG.md). La versión se muestra en el panel y en `GET /api/salud/`.
+
 ## Funcionalidades
 
 - Búsqueda de direcciones por calle, altura, ciudad y provincia.
@@ -118,7 +120,7 @@ El frontend usa el backend real por defecto. Para trabajar sin backend, configur
 
 ## Endpoints
 
-- `GET /api/salud/`: estado del servicio.
+- `GET /api/salud/`: estado y versión del servicio.
 - `GET /api/provincias/`: provincias obtenidas de Georef.
 - `POST /api/geocodificar/`: búsqueda de direcciones y sugerencias.
 - `POST /api/ubicar-coordenadas/`: unidad territorial para un par de coordenadas.
@@ -186,7 +188,7 @@ Comprobar el estado:
 curl http://localhost:8001/api/salud/
 ```
 
-Debe responder `{"estado":"ok"}`.
+Debe responder `{"estado":"ok","version":"0.1.0"}`.
 
 Los errores de CORS que aparecen junto a `Connection refused` suelen ser consecuencia de que el backend está apagado, no un problema separado de configuración.
 

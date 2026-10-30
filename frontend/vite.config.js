@@ -1,8 +1,17 @@
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+const raizFrontend = dirname(fileURLToPath(import.meta.url));
+const version = readFileSync(resolve(raizFrontend, '../VERSION'), 'utf8').trim() || '0.0.0';
+
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+  },
   server: {
     port: 5174,
     strictPort: true,

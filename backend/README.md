@@ -1,5 +1,7 @@
 # Backend — GeoHuella
 
+Versión actual: `0.1.0`, leída desde `../VERSION`.
+
 API Django + Django REST Framework que actúa como proxy/cache de la API pública de Georef y usa Nominatim (OpenStreetMap) y, opcionalmente, HERE Geocoding & Search como respaldos cuando faltan coordenadas.
 
 ## Requisitos
@@ -27,7 +29,7 @@ python manage.py runserver 0.0.0.0:8001
 
 Endpoints base `/api/`:
 
-- `salud/`: estado del servicio.
+- `salud/`: estado y versión del servicio.
 - `provincias/`: provincias de Georef.
 - `geocodificar/`: búsqueda de direcciones; puede devolver candidatos de Georef o de Nominatim.
 - `ubicar-coordenadas/`: unidad territorial para un par lat/lng.

@@ -4,6 +4,8 @@ import pytest
 from django.core.cache import cache
 from django.test import Client
 
+from config.version import VERSION
+
 
 @pytest.fixture(autouse=True)
 def _clear_cache(monkeypatch):
@@ -26,7 +28,7 @@ def client():
 def test_salud_ok(client):
     res = client.get("/api/salud/")
     assert res.status_code == 200
-    assert res.json() == {"estado": "ok"}
+    assert res.json() == {"estado": "ok", "version": VERSION}
 
 
 def _mock_provincias_response(items):

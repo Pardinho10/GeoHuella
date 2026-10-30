@@ -6,7 +6,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { colorSeguro } from '../lib/storage.js';
 import { offsetsPorCoordenada } from '../lib/marcadores.js';
 import { ajustarVista } from '../lib/vista.js';
-import { boundsDeRuta, tramosDeRuta } from '../lib/ruta.js';
+import { boundsDeRuta, formatearDistancia, tramosDeRuta } from '../lib/ruta.js';
 import IconHuella from './IconHuella.jsx';
 
 setWorkerUrl(workerUrl);
@@ -21,6 +21,24 @@ function Pin({ color, variant = 'element', selected = false, label }) {
     <span className={classes} style={{ '--pin': colorSeguro(color) }} title={label}>
       <IconHuella size={variant === 'element' ? 18 : 16} />
     </span>
+  );
+}
+
+function PlacePin({ numero, nombre, activo, onClick }) {
+  return (
+    <button
+      type="button"
+      className={`map-place${activo ? ' is-active' : ''}`}
+      aria-label={`Ver ${nombre} en el mapa`}
+      title={`${nombre} · ${numero}`}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+    >
+      <span aria-hidden="true">{numero}</span>
+      <span className="map-place-label" aria-hidden="true">{nombre}</span>
+    </button>
   );
 }
 
@@ -48,6 +66,18 @@ function ControlVista({ foco, fitAll, elementos }) {
     ajustarVista(map, elementos, { animar: false });
     doneRef.current = true;
   }, [elementos, map]);
+
+  return null;
+}
+
+function ControlLugares({ origen, lugares }) {
+  const maps = useMap();
+  const map = maps?.current;
+
+  useEffect(() => {
+    if (!map || !origen || !Array.isArray(lugares) || lugares.length === 0) return;
+    ajustarVista(map, [origen, ...lugares], { animar: true, padding: 80, maxZoom: 17, zoomUnico: 17 });
+  }, [map, origen, lugares]);
 
   return null;
 }
@@ -87,6 +117,10 @@ export default function Mapa({
   fitAll,
   ruta,
   fitRuta,
+  lugares = [],
+  origenLugares,
+  lugarActivo,
+  onSeleccionarLugar,
   onToggleSeleccionado,
   onToggleSugerencia,
   onFoco,
@@ -113,6 +147,7 @@ export default function Mapa({
     >
       <NavigationControl position="bottom-right" showCompass={false} />
       <ControlVista foco={foco} fitAll={fitAll} elementos={elementos} />
+      <ControlLugares origen={origenLugares} lugares={lugares} />
       <ControlRuta ruta={ruta} fitRuta={fitRuta} />
 
       {ruta?.ruta && (
@@ -172,6 +207,17 @@ export default function Mapa({
         );
       })}
 
+      {lugares.map((lugar, i) => (
+        <Marker
+          key={lugar.id || `lugar-${lugar.lat}-${lugar.lng}-${i}`}
+          longitude={lugar.lng}
+          latitude={lugar.lat}
+          anchor="center"
+        >
+          <PlacePin numero={i + 1} nombre={lugar.nombre} activo={lugarActivo === lugar} onClick={() => onSeleccionarLugar(lugar)} />
+        </Marker>
+      ))}
+
       {candidatos.map((c, i) => {
         const offset = candidateOffsets.get(i) || { x: 0, y: 0 };
         return (
@@ -216,10 +262,18 @@ export default function Mapa({
           latitude={popup.lat}
           anchor="bottom"
           closeButton
+          closeOnClick={false}
           onClose={() => setPopup(null)}
         >
           <div className="pin-card">
+            {popup.categoria && <span className="pin-card-kicker">Lugar cercano</span>}
             <strong>{popup.titulo}</strong>
+            {popup.categoria && (
+              <span className="pin-card-meta">
+                {popup.categoria}
+                {Number.isFinite(popup.distancia_metros) ? ` · ${formatearDistancia(popup.distancia_metros)}` : ''}
+              </span>
+            )}
             <span>{popup.direccion || 'Sin dirección disponible'}</span>
             <small>{popup.lat.toFixed(6)}, {popup.lng.toFixed(6)}</small>
           </div>

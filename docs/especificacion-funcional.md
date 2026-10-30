@@ -54,6 +54,8 @@ El botón “Ruta” abre un panel para seleccionar entre 2 y 20 huellas. Cada f
 
 Cada huella guardada tiene una acción “Cerca”. Al activarla se consulta `GET /api/lugares-cercanos/` con las coordenadas de la huella y se muestran hasta cinco lugares de HERE con nombre, categoría, distancia y dirección. La tarjeta aparece sobre la lista de puntos y se puede cerrar. Los resultados se consultan al momento, no se guardan en `localStorage` y solo se cachean en el backend durante un período corto. Si el servicio no está configurado o falla, se muestra un error dentro de la tarjeta sin afectar los puntos ni las rutas.
 
+Los lugares encontrados se muestran como marcadores numerados en el mapa, con el mismo número en la lista. Al tocar un marcador o un elemento de la lista, el mapa centra ese lugar, resalta el marcador y abre una ficha con nombre, categoría, distancia, dirección y coordenadas. La vista se ajusta automáticamente para incluir la huella de origen y todos los lugares encontrados. Al cerrar la tarjeta de lugares cercanos también se quitan los marcadores y la ficha.
+
 ### Mensajes y mapa
 
 - Validaciones de cliente bajo cada campo, en español. Errores del backend en alerta Bootstrap con mensaje del contrato. Si el servidor no responde: “No se pudo conectar con el servidor”.

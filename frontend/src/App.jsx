@@ -76,6 +76,7 @@ export default function App() {
   const [lugaresAlrededor, setLugaresAlrededor] = useState([]);
   const [cargandoLugares, setCargandoLugares] = useState(false);
   const [errorLugares, setErrorLugares] = useState(null);
+  const [lugarActivo, setLugarActivo] = useState(null);
 
   // Edición, orden y filtro de la lista.
   const [filtroElementos, setFiltroElementos] = useState('');
@@ -114,6 +115,7 @@ export default function App() {
       setAlrededorId(null);
       setLugaresAlrededor([]);
       setErrorLugares(null);
+      setLugarActivo(null);
     }
   }, [alrededorId, elementos]);
 
@@ -364,7 +366,9 @@ export default function App() {
   async function verAlrededor(el) {
     setAlrededorId(el.id);
     setLugaresAlrededor([]);
+    setLugarActivo(null);
     setErrorLugares(null);
+    setPopup(null);
     setCargandoLugares(true);
     setFoco([el.lat, el.lng]);
     try {
@@ -380,7 +384,22 @@ export default function App() {
   function cerrarAlrededor() {
     setAlrededorId(null);
     setLugaresAlrededor([]);
+    setLugarActivo(null);
     setErrorLugares(null);
+    setPopup(null);
+  }
+
+  function seleccionarLugar(lugar) {
+    setLugarActivo(lugar);
+    setFoco([lugar.lat, lugar.lng]);
+    setPopup({
+      titulo: lugar.nombre,
+      direccion: lugar.direccion,
+      categoria: lugar.categoria,
+      distancia_metros: lugar.distancia_metros,
+      lat: lugar.lat,
+      lng: lugar.lng,
+    });
   }
 
   function empezarEdicion(el) {
@@ -563,6 +582,10 @@ export default function App() {
           fitAll={fitAll}
           ruta={ruta}
           fitRuta={fitRuta}
+          lugares={lugaresAlrededor}
+          origenLugares={puntoAlrededor}
+          lugarActivo={lugarActivo}
+          onSeleccionarLugar={seleccionarLugar}
           onToggleSeleccionado={toggleSeleccionado}
           onToggleSugerencia={toggleSugerencia}
           onFoco={setFoco}
@@ -1064,21 +1087,26 @@ export default function App() {
                   )}
                   {lugaresAlrededor.length > 0 && (
                     <div className="alrededor-lista">
-                      {lugaresAlrededor.map((lugar, i) => (
-                        <button
-                          key={lugar.id || `${lugar.lat}-${lugar.lng}-${i}`}
-                          type="button"
-                          className="alrededor-item"
-                          onClick={() => setFoco([lugar.lat, lugar.lng])}
-                        >
-                          <span className="alrededor-item-head">
-                            <strong>{lugar.nombre}</strong>
-                            <span>{formatearDistancia(lugar.distancia_metros)}</span>
-                          </span>
-                          <span className="alrededor-categoria">{lugar.categoria || 'Lugar'}</span>
-                          {lugar.direccion && <span className="alrededor-direccion">{lugar.direccion}</span>}
-                        </button>
-                      ))}
+                      {lugaresAlrededor.map((lugar, i) => {
+                        const activo = lugarActivo === lugar;
+                        return (
+                          <button
+                            key={lugar.id || `${lugar.lat}-${lugar.lng}-${i}`}
+                            type="button"
+                            className={`alrededor-item${activo ? ' is-active' : ''}`}
+                            aria-pressed={activo}
+                            onClick={() => seleccionarLugar(lugar)}
+                          >
+                            <span className="alrededor-item-head">
+                              <span className="alrededor-index" aria-hidden="true">{i + 1}</span>
+                              <strong>{lugar.nombre}</strong>
+                              <span>{formatearDistancia(lugar.distancia_metros)}</span>
+                            </span>
+                            <span className="alrededor-categoria">{lugar.categoria || 'Lugar'}</span>
+                            {lugar.direccion && <span className="alrededor-direccion">{lugar.direccion}</span>}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                   <p className="alrededor-nota">Datos de HERE. Se consultan al momento y no se guardan.</p>

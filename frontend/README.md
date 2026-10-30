@@ -30,7 +30,7 @@ npm run build
 - Resultados de dirección y sugerencias cercanas se muestran en tarjetas; las cercanas están marcadas como aproximadas y solo se agregan tras selección explícita.
 - Marcadores cíclicos de la paleta con resplandor bajo. Los puntos coincidentes se separan visualmente sin alterar sus coordenadas.
 - Rutas: el botón “Ruta” permite seleccionar entre 2 y 20 huellas, elegir inicio y final, caminando/auto/bici, optimizar el orden, ida y vuelta y trazar una línea por calles con distancia y duración. La ruta es temporal y no se guarda; en ida y vuelta, la ida es sólida y el regreso punteado.
-- Lugares cercanos: el botón “Cerca” de cada huella consulta HERE y muestra bares, sanatorios, comercios y otros puntos de interés con categoría y distancia.
+- Lugares cercanos: el botón “Cerca” de cada huella consulta HERE y muestra bares, sanatorios, comercios y otros puntos de interés con categoría y distancia. Los resultados se numeran en el mapa y en la lista; al tocar un marcador o un elemento de la lista se abre una ficha con nombre, categoría, distancia y dirección. La vista se ajusta automáticamente para que todos los puntos queden visibles.
 - Tooltip nativo al pasar el cursor y popup al hacer clic, con nombre, dirección y coordenadas a 6 decimales. El mapa vectorial permite zoom hasta 20; OpenFreeMap publica datos hasta zoom 14 y MapLibre los amplía sin devolver tiles de error.
 - Panel colapsable; en móvil se convierte en hoja inferior y los controles de zoom se reubican por encima.
 - Cada huella se puede editar, subir o bajar dentro de la lista y filtrar por nombre o dirección. El orden de la lista se usa como orden base para las rutas sin optimización.

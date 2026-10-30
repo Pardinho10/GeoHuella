@@ -31,22 +31,23 @@ export function boundsParaElementos(elementos) {
  * Ajusta el mapa a uno o varios elementos. Con un único punto usa `flyTo`
  * porque un bounds de área cero es inválido/incómodo para MapLibre.
  */
-export function ajustarVista(map, elementos, { animar = true } = {}) {
+export function ajustarVista(map, elementos, { animar = true, padding = 40, maxZoom = 15, zoomUnico = 14 } = {}) {
   const bounds = boundsParaElementos(elementos);
   if (!map || !bounds) return false;
 
-  if (elementos.length === 1) {
+  const [minLng, minLat, maxLng, maxLat] = bounds;
+  if (minLng === maxLng && minLat === maxLat) {
     map.flyTo({
-      center: [elementos[0].lng, elementos[0].lat],
-      zoom: Math.max(map.getZoom?.() ?? 0, 14),
+      center: [minLng, minLat],
+      zoom: Math.max(map.getZoom?.() ?? 0, Math.min(maxZoom, zoomUnico)),
       duration: animar ? 600 : 0,
     });
     return true;
   }
 
   map.fitBounds(bounds, {
-    padding: 40,
-    maxZoom: 15,
+    padding,
+    maxZoom,
     duration: animar ? 600 : 0,
   });
   return true;

@@ -126,9 +126,16 @@ describe('App rutas', () => {
     await waitFor(() => {
       expect(buscarLugaresCercanos).toHaveBeenCalledWith(-27.784, -64.267, 5);
     });
-    expect(await screen.findByText('Ibra Bar')).toBeInTheDocument();
+    expect((await screen.findAllByText('Ibra Bar')).length).toBeGreaterThan(0);
     expect(screen.getByText('Bar o pub')).toBeInTheDocument();
     expect(screen.getByText('31 m')).toBeInTheDocument();
+
+    const marcador = screen.getByRole('button', { name: 'Ver Ibra Bar en el mapa' });
+    expect(marcador).toBeInTheDocument();
+    await user.click(marcador);
+    expect(await screen.findByText('Lugar cercano')).toBeInTheDocument();
+    expect(screen.getByText('Bar o pub · 31 m')).toBeInTheDocument();
+    expect(screen.getAllByText('Ibra Bar, Perú 780').length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole('button', { name: 'Cerrar lugares cercanos' }));
     expect(screen.queryByText('Ibra Bar')).not.toBeInTheDocument();

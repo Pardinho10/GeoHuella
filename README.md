@@ -23,6 +23,7 @@ El nombre de producto es **GeoHuella**. El repositorio conserva el nombre intern
 - Ida y regreso diferenciados en el mapa: ida sólida y regreso punteado.
 - Distancia y duración estimadas por el proveedor de ruteo.
 - Consulta de lugares cercanos a una huella: bares, sanatorios, comercios y otros puntos de interés.
+- Los lugares cercanos aparecen numerados en el mapa, con el mismo número en la lista. Al tocar un punto se abre una ficha con nombre, categoría, distancia y dirección.
 
 ## Stack
 

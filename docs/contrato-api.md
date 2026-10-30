@@ -7,7 +7,7 @@ Fuente de verdad compartida entre backend y frontend. Base `/api/`. JSON UTF-8. 
 `200 OK`
 
 ```json
-{ "estado": "ok", "version": "0.1.1" }
+{ "estado": "ok", "version": "0.2.0" }
 ```
 
 ## 2. Provincias — `GET /api/provincias/`
@@ -95,7 +95,51 @@ Si la respuesta de Georef es válida, pero no queda ningún resultado con coorde
 
 `error.sugerencias` es opcional; cuando existe contiene hasta 5 ubicaciones alternativas numeradas sobre la misma calle y en la misma ciudad/provincia, próximas a la altura solicitada. Nunca se agregan automáticamente. Si no se encuentran coincidencias cercanas fiables, se conserva el error `no_encontrada` sin sugerencias. Las sugerencias provistas por Nominatim o HERE pueden ser aproximadas y deben ser elegidas explícitamente por la persona. Las alturas `interpolated` de HERE se presentan como aproximadas, nunca como coincidencia exacta.
 
-## 4. Ubicar coordenadas — `POST /api/ubicar-coordenadas/`
+## 4. Geocodificación en lote — `POST /api/geocodificar-lote/` (v0.2.0)
+
+Procesa secuencialmente un lote pequeño de direcciones y devuelve un resultado por cada `id`, preservando el orden de entrada. Reutiliza la lógica de `/api/geocodificar/` y no agrega puntos automáticamente. El frontend limita la importación a 100 filas y las divide en solicitudes secuenciales de 10 (variables `IMPORT_MAX_FILAS` y `GEOCODIFICAR_LOTE_MAX`). En este piloto el tamaño efectivo de lote frontend/backend debe permanecer sincronizado en 10; si se cambia, hay que cambiar el tamaño de bloque frontend en el mismo release.
+
+### Solicitud
+
+```json
+{
+  "filas": [
+    {"id": "fila-1", "calle": "Perú", "altura": "781", "ciudad": "Santiago del Estero", "provincia": "Santiago del Estero"}
+  ]
+}
+```
+
+`filas` debe tener entre 1 y `GEOCODIFICAR_LOTE_MAX` (default 10) elementos. Cada fila requiere `id` único de tipo string (máximo 80), `calle` (string, máximo 120), `altura` (string de dígitos ASCII `0-9`, máximo 6), `ciudad` (string, máximo 80) y `provincia` válida. Una fila inválida rechaza el lote completo con HTTP 400 antes de iniciar geocodificación; los errores se identifican en `error.campos` con claves `filas[<índice>].<campo>`, y cada fila conserva su `id` en el mensaje/clave de detalle cuando se pueda. La limitación de 100 filas totales es aplicada por el cliente. Si no se puede obtener la lista oficial de provincias, el endpoint responde 502 `servicio_no_disponible` sin procesar filas.
+
+### Respuesta `200 OK`
+
+```json
+{
+  "resultados": [
+    {
+      "id": "fila-1",
+      "estado": "ambigua",
+      "candidatos": [
+        {"lat": -27.77751, "lng": -64.26501, "nombre": "Perú 781", "direccion": "PERU 781, Santiago del Estero", "proveedor": "here", "aproximada": true}
+      ],
+      "mensaje": null
+    }
+  ]
+}
+```
+
+- `estado`: `encontrada` (exactamente un candidato exacto), `ambigua` (más de un candidato exacto o cualquier candidato aproximado), `sin_resultado` o `error` (fallo de proveedor aislado a la fila, incluido el caso en que ningún proveedor devuelve datos utilizables).
+- Cada resultado incluye `id`, `estado`, `candidatos` (máximo 5) y `mensaje` (string o null). `sin_resultado` y `error` no llevan candidatos.
+- Cada candidato incluye `lat`, `lng`, `nombre` (puede ser null), `direccion`, `proveedor` (`georef`, `nominatim` o `here`) y `aproximada` (boolean obligatorio).
+- Para Georef, `aproximada: false` requiere altura coincidente y calle verificable. La calle se normaliza (acentos, mayúsculas, puntuación, espacios y prefijos genéricos de vía); se acepta igualdad token a token o una sola edición de carácter en total, sin tokens añadidos/eliminados. Localidad y provincia, cuando el proveedor las informa, no deben contradecir la solicitud. Si calle/altura no se pueden verificar, la discrepancia supera esa tolerancia o contradice el territorio, se devuelve `aproximada: true` y el estado es `ambigua`.
+- En Nominatim exacto y HERE `PA`/`MPA` se conserva la validación exacta propia de cada proveedor. HERE interpolado y Nominatim de altura vecina siempre son aproximados.
+- `aproximada` describe certeza posicional/coincidencia del proveedor, no significa que el punto sea necesariamente incorrecto. Toda fila `ambigua` exige seleccionar explícitamente un candidato.
+- Ningún candidato de un resultado `ambigua` se preselecciona. Cada fila requiere elegir explícitamente un candidato antes de agregar; `encontrada` con un único candidato exacto puede quedar preseleccionada, pero siempre se confirma con el botón de alta.
+- Un error temporal en una fila no impide devolver resultados de las otras.
+- El endpoint no ejecuta peticiones paralelas por fila ni cambia el rate limit global de Nominatim. Si el usuario cancela el cliente, el servidor puede continuar la petición HTTP en curso y consumir cuota; el cliente solo garantiza no empezar nuevos bloques.
+- Candidatos aproximados deben seguir marcados y requerir selección explícita. El servidor no persiste puntos.
+
+## 5. Ubicar coordenadas — `POST /api/ubicar-coordenadas/`
 
 Valida coordenadas y consulta la unidad territorial que las contiene mediante Georef `/ubicacion`.
 
@@ -133,7 +177,7 @@ Si Georef no informa unidad territorial, devuelve 200 y campos territoriales nul
 }
 ```
 
-## 5. Ruta — `POST /api/ruta/`
+## 6. Ruta — `POST /api/ruta/`
 
 Calcula una ruta por calles entre 2 y 20 huellas. Requiere `ROUTING_ENABLED=true` y `ROUTING_API_KEY` configurada en el backend; la key nunca se expone al frontend. Usa HeiGIT/OpenRouteService Directions v2 para la geometría y VROOM para la optimización opcional del orden.
 
@@ -188,7 +232,7 @@ Calcula una ruta por calles entre 2 y 20 huellas. Requiere `ROUTING_ENABLED=true
 - Con `volver_al_inicio=true`, el frontend divide la geometría usando el penúltimo `properties.way_points`: ida sólida y regreso punteado. Si falta `way_points`, usa el punto más lejano como corte aproximado.
 - Solo se envían coordenadas y perfil al proveedor; no se envían nombres de lugares.
 
-## 6. Lugares cercanos — `GET /api/lugares-cercanos/`
+## 7. Lugares cercanos — `GET /api/lugares-cercanos/`
 
 Devuelve hasta 10 lugares de HERE alrededor de una coordenada. Requiere `HERE_PLACES_ENABLED=true` y `HERE_API_KEY`; la key queda solo en el backend. Los resultados se cachean durante `HERE_PLACES_CACHE_TTL` segundos y no se persisten en `localStorage`.
 
@@ -229,7 +273,7 @@ GET /api/lugares-cercanos/?lat=-27.77751&lng=-64.26501&limit=5
 - Los resultados son una referencia del proveedor, no una verdad absoluta; pueden estar desactualizados.
 - No se guardan en la base local ni se envían nombres de huellas al proveedor.
 
-## 7. Errores uniformes
+## 8. Errores uniformes
 
 Todos los errores usan esta envoltura JSON:
 
@@ -244,7 +288,7 @@ Todos los errores usan esta envoltura JSON:
 
 | HTTP | `codigo` | Uso |
 |---|---|---|
-| 400 | `solicitud_invalida` | JSON mal formado, campos faltantes o validación de campos, incluido un `fin` fuera de rango o combinado con `volver_al_inicio`. |
+| 400 | `solicitud_invalida` | JSON mal formado, campos faltantes o validación de campos, incluido un `fin` fuera de rango o combinado con `volver_al_inicio`. En el lote, las claves de `error.campos` son `filas[<índice>].<campo>`. |
 | 404 | `no_encontrada` | Georef y el fallback exacto no hallaron ubicación; puede incluir opcionalmente `error.sugerencias` con hasta 5 alturas cercanas de la misma calle/localidad/provincia. |
 | 422 | `fuera_de_rango` | Coordenadas fuera de la caja geográfica acordada para Argentina. |
 | 429 | `demasiadas_solicitudes` | Límite de solicitudes del backend. |
@@ -266,14 +310,15 @@ Los errores 400 pueden incluir `campos`, con mensajes por campo:
 }
 ```
 
-## 8. Contrato visual de sugerencias
+## 9. Contrato visual de sugerencias
 
 - En un 404 con `error.sugerencias`, el frontend muestra una sección separada “Ubicaciones cercanas” con dirección y punto de mapa por candidato. Se informa que no se encontró la altura exacta.
+- En importación batch, filas `ambigua` requieren selección explícita incluso si solo hay un candidato aproximado; ningún resultado ambiguo se agrega ni queda marcado por defecto. El indicador textual de un candidato aproximado es “Aproximada” y se muestra junto a su dirección.
 - La persona puede seleccionar una o varias sugerencias y agregarlas explícitamente. Nunca se agregan automáticamente ni se presentan como coincidencia exacta.
 - Mostrar el indicador de aproximación “Cercana · verificá antes de agregar”. Los marcadores de sugerencias usan estilo distinto a candidatos exactos.
 - Una respuesta 404 sin `sugerencias` conserva el estado de error no encontrado normal.
 
-## 9. Reglas compartidas del cliente
+## 10. Reglas compartidas del cliente
 
 - El frontend agrega candidatos elegidos como elementos locales; no existe endpoint para guardar ni eliminar elementos.
 - El nombre se asigna en el cliente. El contador monotónico solo avanza cuando se crea un elemento sin nombre provisto por el usuario; buscar candidatos o crear elementos con nombre personalizado no lo incrementa. Borrar elementos nunca reduce el contador ni reutiliza números.

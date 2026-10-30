@@ -47,3 +47,13 @@ Resultado detallado en `docs/resultado-integracion.md`. Se verificó con Chrome 
 ## Fase 2.1 — Migración de mapa a MapLibre — IMPLEMENTADA, PENDIENTE DE VERIFICACIÓN
 
 Se reemplazó la capa raster de Esri y Leaflet por MapLibre GL JS con el estilo vectorial oscuro de OpenFreeMap, para permitir zoom hasta nivel 20 sin tiles de “mapa no disponible”. Cambios y diagnóstico en [`migracion-maplibre.md`](migracion-maplibre.md). No se avanzó a la verificación funcional completa. Queda pendiente probar el mapa migrado, el selector de provincia y el flujo completo en navegador antes de cerrar la etapa.
+
+## Etapa v0.2.0 — Importación masiva — IMPLEMENTADA, PENDIENTE DE APROBACIÓN
+
+Autorizada por el usuario. El alcance funcional y los criterios están en [`fase-1-importacion-masiva.md`](fase-1-importacion-masiva.md); el contrato, en [`contrato-api.md`](contrato-api.md) §4.
+
+- Backend: `POST /api/geocodificar-lote/` de 1 a `GEOCODIFICAR_LOTE_MAX` filas (default 10) sobre la lógica compartida, con errores aislados por fila y criterio conservador de exactitud de Georef (altura coincidente, localidad/provincia compatibles y calle con la misma cantidad de tokens y como máximo una edición de carácter en total).
+- Frontend: acción **Importar** con texto pegado y CSV (detección y mapeo de columnas), revisión editable por fila, defaults explícitos de ciudad/provincia, límite `IMPORT_MAX_FILAS` (100), procesamiento secuencial en bloques de 10 con progreso y cancelación del cliente (no detiene el backend), selección explícita de candidatos aproximados, duplicados y confirmación antes de persistir en `localStorage`.
+- Rutas: se conserva el máximo de 20 huellas, con aviso accesible del límite y elección de subconjunto cuando la lista es mayor; sin división automática en tramos.
+- Verificación: `pytest` y `manage.py check` del backend, `npm test` y `npm run build` del frontend en verde; smoke E2E local con servicios reales ejecutado antes del cierre (informe a cargo del orquestador).
+- Pendiente: aprobación final del usuario y tareas de publicación (CI/E2E, accesibilidad, configuración de producción).

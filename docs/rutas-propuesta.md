@@ -64,7 +64,7 @@ Campos:
           "type": "LineString",
           "coordinates": [[-64.267, -27.784], [-64.265, -27.782]]
         },
-        "properties": { "perfil": "walking" }
+        "properties": { "summary": { "distance": 2450.4, "duration": 1800 } }
       }
     ]
   },
@@ -84,8 +84,7 @@ Campos:
 
 | HTTP | Código | Cuándo |
 |---|---|---|
-| 400 | `puntos_invalidos` | Menos de 2 o más de 20 puntos, coordenadas inválidas o fuera de Argentina. |
-| 400 | `perfil_invalido` | Perfil fuera de `walking`, `driving`, `cycling`. |
+| 400 | `solicitud_invalida` | Menos de 2 o más de 20 puntos, coordenadas inválidas o fuera de Argentina, o perfil distinto de `walking`, `driving` o `cycling`. |
 | 429 | `demasiadas_solicitudes` | Se superó el límite del backend. |
 | 502 | `routing_no_disponible` | El proveedor de rutas u optimización falló, agotó el timeout o devolvió una respuesta inesperada. |
 | 503 | `routing_no_configurado` | Falta la API key o el servicio está apagado. |
@@ -114,6 +113,7 @@ Formato de error, consistente con el resto de la API:
 9. Se ajusta la vista a la ruta completa.
 10. Con ida y vuelta, la ida se dibuja sólida y el regreso punteado; el resumen incluye la leyenda.
 11. “Quitar ruta” elimina la línea y el resumen, sin borrar las huellas.
+12. Si hay más de 20 huellas en la lista, el panel avisa del límite, permite elegir un subconjunto o limpiar la selección (sin borrar puntos) y deshabilita el resto con referencia al aviso.
 
 La línea debe distinguirse de los marcadores y respetar el tema visual. Las huellas siguen siendo la fuente de verdad; la ruta es una visualización temporal.
 
@@ -123,7 +123,7 @@ La línea debe distinguirse de los marcadores y respetar el tema visual. Las hue
 - No se envía el nombre del lugar, solo coordenadas y perfil.
 - La API key nunca se expone al frontend.
 - Cachear rutas idénticas durante un período corto para ahorrar cuota.
-- Para más de 20 puntos, no usar optimización exacta: ofrecer solo ruta en orden fijo o una heurística local.
+- El límite vigente es de 20 puntos por ruta y `/api/ruta/` rechaza más. Para conjuntos mayores, la interfaz avisa y permite elegir un subconjunto; la división automática en tramos queda fuera de v0.2.0.
 - Revisar términos, atribución y almacenamiento del proveedor antes de producción.
 
 ## Fases de implementación

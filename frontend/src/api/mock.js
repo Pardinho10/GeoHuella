@@ -6,6 +6,148 @@ const PROVINCIAS = [
   'Tucumán', 'Ciudad Autónoma de Buenos Aires',
 ];
 
+/** Error con la misma forma que los del cliente real. */
+function errorMock(mensaje, codigo) {
+  const e = new Error(mensaje);
+  e.codigo = codigo;
+  return e;
+}
+
+function normalizarClave(texto) {
+  return String(texto || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Hash FNV-1a: resultados deterministas para el mismo texto. */
+function hash(texto) {
+  let h = 2166136261;
+  const t = String(texto || '');
+  for (let i = 0; i < t.length; i += 1) {
+    h ^= t.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function coordenadasMock(clave) {
+  const h = hash(clave);
+  const lat = -27.79 + ((h % 900) / 1000) * 0.02;
+  const lng = -64.27 + (((h >>> 11) % 900) / 1000) * 0.02;
+  return { lat: Number(lat.toFixed(6)), lng: Number(lng.toFixed(6)) };
+}
+
+function esperar(ms, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      const e = new Error('Cancelado');
+      e.name = 'AbortError';
+      reject(e);
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener?.('abort', alAbortar);
+      resolve();
+    }, ms);
+    function alAbortar() {
+      clearTimeout(timer);
+      const e = new Error('Cancelado');
+      e.name = 'AbortError';
+      reject(e);
+    }
+    signal?.addEventListener?.('abort', alAbortar, { once: true });
+  });
+}
+
+function candidatoMock(fila, { aproximada = false, delta = 0, salt = '' } = {}) {
+  const altura = String(Number(fila.altura) + delta);
+  const clave = `${normalizarClave(fila.calle)} ${altura} ${normalizarClave(fila.ciudad)}${salt}`;
+  const { lat, lng } = coordenadasMock(clave);
+  return {
+    lat,
+    lng,
+    nombre: `${fila.calle} ${altura}`,
+    direccion: `${String(fila.calle).toUpperCase()} ${altura}, ${fila.ciudad}, ${fila.provincia}`,
+    proveedor: 'georef',
+    aproximada,
+  };
+}
+
+/**
+ * Mock determinista de `POST /api/geocodificar-lote/`.
+ * Marcadores para pruebas end-to-end sin backend:
+ * - calle con "ambig": un candidato exacto + uno aproximado.
+ * - calle con "error": estado `error` aislado.
+ * - calle con "sinresultado" o "zzz": `sin_resultado`.
+ * - resto: `encontrada` (o `ambigua` según hash, para cubrir el caso).
+ */
+function resultadoLoteMock(fila) {
+  const clave = normalizarClave(`${fila.calle} ${fila.altura} ${fila.ciudad} ${fila.provincia}`);
+
+  if (/\berror\b/.test(clave)) {
+    return { id: fila.id, estado: 'error', candidatos: [], mensaje: 'El proveedor no respondió (mock).' };
+  }
+
+  if (/sinresultado|sin resultado|\bzzz\b/.test(clave)) {
+    return { id: fila.id, estado: 'sin_resultado', candidatos: [], mensaje: null };
+  }
+
+  if (/\bambig/.test(clave)) {
+    return {
+      id: fila.id,
+      estado: 'ambigua',
+      candidatos: [
+        candidatoMock(fila),
+        candidatoMock(fila, { aproximada: true, delta: 2 }),
+      ],
+      mensaje: null,
+    };
+  }
+
+  const variante = hash(clave) % 3;
+  if (variante === 0) {
+    return {
+      id: fila.id,
+      estado: 'ambigua',
+      candidatos: [candidatoMock(fila), candidatoMock(fila, { delta: 0, salt: 'b' })],
+      mensaje: null,
+    };
+  }
+  if (variante === 1) {
+    return {
+      id: fila.id,
+      estado: 'ambigua',
+      candidatos: [
+        candidatoMock(fila),
+        candidatoMock(fila, { aproximada: true, delta: 5 }),
+      ],
+      mensaje: null,
+    };
+  }
+
+  return { id: fila.id, estado: 'encontrada', candidatos: [candidatoMock(fila)], mensaje: null };
+}
+
+export async function geocodificarLote(filas, { signal } = {}) {
+  const lista = Array.isArray(filas) ? filas : [];
+  if (lista.length === 0) throw errorMock('Enviá al menos una fila.', 'solicitud_invalida');
+  if (lista.length > 10) throw errorMock('El lote admite hasta 10 filas.', 'solicitud_invalida');
+
+  for (const fila of lista) {
+    if (!fila || !fila.id || !fila.calle || !fila.altura || !fila.ciudad || !fila.provincia) {
+      throw errorMock('Revisá los campos indicados.', 'solicitud_invalida');
+    }
+  }
+
+  // Deja respirar a la UI entre bloques y respeta la cancelación.
+  await esperar(0, signal);
+
+  return lista.map(resultadoLoteMock);
+}
+
 export async function obtenerProvincias() {
   return [...PROVINCIAS].sort((a, b) => a.localeCompare(b, 'es'));
 }

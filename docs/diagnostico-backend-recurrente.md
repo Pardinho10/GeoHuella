@@ -32,7 +32,7 @@ El servicio usa `scripts/backend-service.sh`, referencia la raíz del proyecto a
 
 - Django devolvió `200` en `/api/salud/`, `/api/provincias/` y `OPTIONS` con CORS para `http://localhost:5174`.
 - Se mató intencionalmente el proceso principal de Django; systemd lo reinició y `/api/salud/` volvió a `200` (`NRestarts` incrementó a 1).
-- Tests backend: 75; frontend: 67; build Vite: correcto.
+- Tests al momento de esta corrección (v0.1.1): backend 75; frontend 67; build Vite correcto. Las suites crecieron con la importación masiva de v0.2.0.
 
 ## Aviso independiente de mapa
 

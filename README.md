@@ -4,7 +4,7 @@ Mapa de lugares para buscar direcciones, comparar coincidencias, guardar puntos 
 
 El nombre de producto es **GeoHuella**. El repositorio conserva el nombre interno `piloto-mapa` en algunas claves de `localStorage` para no perder datos existentes.
 
-**Versión actual:** `0.1.1`. El historial de cambios está en [`CHANGELOG.md`](CHANGELOG.md). La versión se muestra en el panel y en `GET /api/salud/`.
+**Versión actual:** `0.2.0`. El historial de cambios está en [`CHANGELOG.md`](CHANGELOG.md). La versión se muestra en el panel y en `GET /api/salud/`.
 
 ## Funcionalidades
 
@@ -26,6 +26,9 @@ El nombre de producto es **GeoHuella**. El repositorio conserva el nombre intern
 - Distancia y duración estimadas por el proveedor de ruteo.
 - Consulta de lugares cercanos a una huella: bares, sanatorios, comercios y otros puntos de interés.
 - Los lugares cercanos aparecen numerados en el mapa, con el mismo número en la lista. Al tocar un punto se abre una ficha con nombre, categoría, distancia y dirección.
+- Importación masiva de direcciones desde texto pegado o CSV: revisión y corrección por fila, geocodificación secuencial en lotes, cancelación, detección de duplicados y confirmación antes de guardar. Hasta 100 filas por importación.
+- Criterio conservador de exactitud para Georef en la importación: la calle admite como máximo una edición de carácter en total, la altura debe coincidir y localidad/provincia no pueden contradecir la dirección pedida; cualquier duda deja el candidato como aproximado y sin preseleccionar.
+- Al armar rutas con más de 20 huellas, la interfaz avisa del límite y permite elegir el subconjunto sin borrar puntos.
 
 ## Stack
 
@@ -91,6 +94,8 @@ CORS_ALLOWED_ORIGINS=http://localhost:5174
 | `HERE_PLACES_ENABLED` | Activa la consulta de lugares cercanos. |
 | `HERE_PLACES_URL` | Endpoint Browse de HERE. |
 | `HERE_PLACES_CACHE_TTL` | Tiempo de caché de lugares cercanos. |
+| `IMPORT_MAX_FILAS` | Tope de filas por importación, aplicado por el cliente (default 100). |
+| `GEOCODIFICAR_LOTE_MAX` | Tope real de filas por solicitud de `/api/geocodificar-lote/` (default 10). Mantener sincronizado con el bloque de 10 del frontend. |
 
 Para habilitar rutas, crear una API key gratuita en <https://account.heigit.org/> y configurar:
 
@@ -125,6 +130,7 @@ El frontend usa el backend real por defecto. Para trabajar sin backend, configur
 - `GET /api/salud/`: estado y versión del servicio.
 - `GET /api/provincias/`: provincias obtenidas de Georef.
 - `POST /api/geocodificar/`: búsqueda de direcciones y sugerencias.
+- `POST /api/geocodificar-lote/`: geocodificación en lote de hasta `GEOCODIFICAR_LOTE_MAX` filas (default 10), con estado y errores aislados por fila.
 - `POST /api/ubicar-coordenadas/`: unidad territorial para un par de coordenadas.
 - `POST /api/ruta/`: ruta por calles, con perfiles, inicio, final y optimización opcional.
 - `GET /api/lugares-cercanos/`: lugares de HERE alrededor de una coordenada.
@@ -152,6 +158,8 @@ npm run build
 
 Las pruebas no dependen de llamadas reales a los proveedores externos. La verificación con servicios reales requiere configurar las API keys correspondientes.
 
+El repositorio no incluye un CSV de muestra: para un smoke de importación manual, generar un archivo temporal fuera del repositorio (por ejemplo en `/tmp`) con encabezados y 1–2 filas, y borrarlo al terminar.
+
 ## Estructura
 
 ```text
@@ -164,6 +172,7 @@ Documentación adicional:
 
 - [`docs/contrato-api.md`](docs/contrato-api.md)
 - [`docs/especificacion-funcional.md`](docs/especificacion-funcional.md)
+- [`docs/fase-1-importacion-masiva.md`](docs/fase-1-importacion-masiva.md)
 - [`docs/notas-georef.md`](docs/notas-georef.md)
 - [`docs/rutas-propuesta.md`](docs/rutas-propuesta.md)
 - [`docs/migracion-maplibre.md`](docs/migracion-maplibre.md)
@@ -214,7 +223,7 @@ Comprobar el estado:
 curl http://localhost:8001/api/salud/
 ```
 
-Debe responder `{"estado":"ok","version":"0.1.1"}`.
+Debe responder `{"estado":"ok","version":"0.2.0"}`.
 
 Los errores de CORS que aparecen junto a `Connection refused` suelen ser consecuencia de que el backend está apagado, no un problema separado de configuración. El servicio persistente gestiona fallas del backend; si la consola muestra `Could not be loaded` para una imagen de MapLibre, es un aviso separado sobre el sprite del estilo cartográfico.
 
@@ -236,6 +245,7 @@ Detener ese proceso o cambiar el puerto de Django y `VITE_API_BASE_URL`.
 
 - Los puntos se guardan en `localStorage`; no existe base de datos de negocio ni autenticación.
 - Las búsquedas de direcciones envían calle, altura, ciudad y provincia a los proveedores configurados.
+- La importación masiva procesa el CSV o el texto en el navegador y envía las filas al backend en bloques secuenciales de hasta 10. El backend no persiste las filas ni registra las direcciones completas.
 - Las rutas envían coordenadas y perfil al proveedor de ruteo.
 - La consulta de lugares cercanos envía coordenadas a HERE; no se guardan en el navegador y solo se cachean por un período corto en el backend.
 - Las API keys permanecen en el backend.
@@ -250,7 +260,9 @@ Detener ese proceso o cambiar el puerto de Django y `VITE_API_BASE_URL`.
 - Las alturas interpoladas por HERE se muestran como sugerencias aproximadas.
 - Las rutas dependen de una API key de HeiGIT y de sus cuotas.
 - Los lugares cercanos dependen de HERE y de su cobertura, cuota y términos de uso.
-- El máximo de huellas por ruta es 20.
+- El máximo de huellas por ruta es 20. Con conjuntos mayores, se elige un subconjunto; no hay división automática en tramos.
+- La importación masiva usa archivos CSV/texto, con máximo 100 filas (`IMPORT_MAX_FILAS`); el tamaño batch del cliente y backend debe mantenerse sincronizado en 10 (`GEOCODIFICAR_LOTE_MAX`).
+- La tolerancia de una edición de carácter solo aplica al lote de importación: la altura debe coincidir y localidad/provincia no pueden contradecir la solicitud. El endpoint individual conserva su semántica histórica.
 - La optimización usa un solo vehículo y no admite ventanas horarias ni capacidades.
 - Los tests automatizados usan respuestas simuladas de los proveedores externos.
 

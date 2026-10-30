@@ -242,6 +242,8 @@ class HereClient:
                 "aproximada": True,
                 "_numero": number,
                 "_interpolada": house_number_type == "interpolated",
+                # Nombre corto del proveedor (interno: `publico()` lo descarta).
+                "_nombre": title.strip() if isinstance(title, str) and title.strip() else None,
             })
             if len(results) >= 5:
                 break

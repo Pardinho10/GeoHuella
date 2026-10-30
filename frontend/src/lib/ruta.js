@@ -1,5 +1,54 @@
 export const MAX_PUNTOS_RUTA = 20;
 
+/**
+ * Estado del límite de huellas por ruta (un solo tramo, máximo 20).
+ * Se calcula sobre la lista completa, no sobre el filtro visible: el filtro
+ * solo cambia qué huellas se ven, nunca el total ni la selección.
+ */
+export function analizarLimiteRuta({ total = 0, visibles = null, seleccionados = 0, max = MAX_PUNTOS_RUTA } = {}) {
+  const entero = (valor) => {
+    const n = Math.floor(Number(valor));
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  };
+
+  const maximo = Math.max(1, entero(max));
+  const totalHuellas = entero(total);
+  const seleccion = Math.min(entero(seleccionados), maximo);
+  const visiblesHuellas = visibles === null || visibles === undefined ? totalHuellas : entero(visibles);
+  const excedentes = Math.max(0, totalHuellas - maximo);
+  const quedanFuera = Math.max(0, totalHuellas - seleccion);
+
+  return {
+    total: totalHuellas,
+    visibles: visiblesHuellas,
+    seleccionados: seleccion,
+    max: maximo,
+    excedentes,
+    hayExcedente: excedentes > 0,
+    faltanParaMaximo: Math.max(0, maximo - seleccion),
+    alcanzoMaximo: seleccion >= maximo,
+    quedanFuera,
+    hayDisponibles: quedanFuera > 0,
+  };
+}
+
+/** Aviso contextual cuando hay más huellas que el máximo de la ruta. */
+export function mensajeExcedenteRuta(estado, { filtroActivo = false } = {}) {
+  const total = Number(estado?.total) || 0;
+  const max = Number(estado?.max) || MAX_PUNTOS_RUTA;
+  const visibles = Number(estado?.visibles) || 0;
+  const base = `Tenés ${total} huellas y la ruta admite hasta ${max}. Elegí un subconjunto de hasta ${max}: el recorrido se calcula en un solo tramo.`;
+  if (!filtroActivo || visibles >= total) return base;
+  return `${base} El filtro muestra ${visibles} de ${total}.`;
+}
+
+/** Aviso cuando la selección llegó al tope y todavía quedan huellas fuera. */
+export function mensajeMaximoRuta(estado) {
+  const max = Number(estado?.max) || MAX_PUNTOS_RUTA;
+  const total = Number(estado?.total) || max;
+  return `Seleccionaste el máximo de ${max} huellas de ${total}. Para incluir otra, desmarcá una de las elegidas o limpiá la selección.`;
+}
+
 export const PERFILES_RUTA = [
   { id: 'walking', etiqueta: 'Caminando' },
   { id: 'driving', etiqueta: 'Auto' },

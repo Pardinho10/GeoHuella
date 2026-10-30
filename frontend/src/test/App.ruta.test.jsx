@@ -66,7 +66,7 @@ describe('App rutas', () => {
 
   it('muestra la versión de la aplicación', () => {
     render(<App />);
-    expect(screen.getByText('v0.1.1')).toBeInTheDocument();
+    expect(screen.getByText('v0.2.0')).toBeInTheDocument();
   });
 
   it('permite editar el nombre de una huella', async () => {

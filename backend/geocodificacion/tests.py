@@ -1279,3 +1279,904 @@ def test_lugares_cercanos_proveedor_error(client, monkeypatch, caplog):
     assert res.status_code == 502
     assert res.json()["error"]["codigo"] == "lugares_no_disponible"
     assert "SECRET-PLACES-BODY" not in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# Geocodificación en lote — POST /api/geocodificar-lote/ (v0.2.0, B1.1–B1.5)
+# ---------------------------------------------------------------------------
+
+LOTE_PROVINCIAS = ["Santiago del Estero", "Buenos Aires", "Córdoba"]
+
+
+def _fila(indice, calle="Perú", altura="781", ciudad="Santiago del Estero",
+          provincia="Santiago del Estero", id_=None):
+    return {
+        "id": id_ if id_ is not None else f"fila-{indice}",
+        "calle": calle,
+        "altura": altura,
+        "ciudad": ciudad,
+        "provincia": provincia,
+    }
+
+
+def _georef_candidato(lat, lng, nomenclatura=None, localidad="Santiago del Estero"):
+    return {
+        "lat": lat,
+        "lng": lng,
+        "direccion": nomenclatura,
+        "provincia": "Santiago del Estero",
+        "localidad": localidad,
+        "departamento": "Capital",
+        "aproximada": True,
+    }
+
+
+def _mock_servicio(valor, error=None):
+    """MagicMock para un método de servicio: callable -> side_effect."""
+    if error is not None:
+        return MagicMock(side_effect=error)
+    if callable(valor):
+        return MagicMock(side_effect=valor)
+    return MagicMock(return_value=list(valor or []))
+
+
+def _entorno_lote(geocodificar=None, provincias=None, nominatim_exact=None,
+                  nominatim_nearby=None, here=None, geocodificar_error=None,
+                  provincias_error=None, nominatim_exact_error=None,
+                  nominatim_nearby_error=None, here_error=None):
+    """Patchea Georef/Nominatim/HERE para ejercitar el endpoint de lote."""
+    from contextlib import ExitStack
+
+    stack = ExitStack()
+    calls = {
+        "provincias": stack.enter_context(patch(
+            "geocodificacion.services.georef.GeorefClient.provincias",
+            _mock_servicio(LOTE_PROVINCIAS if provincias is None else provincias,
+                           provincias_error),
+        )),
+        "geocodificar": stack.enter_context(patch(
+            "geocodificacion.services.georef.GeorefClient.geocodificar",
+            _mock_servicio(geocodificar, geocodificar_error),
+        )),
+        "nominatim_exact": stack.enter_context(patch(
+            "geocodificacion.services.nominatim.NominatimClient.search_exact",
+            _mock_servicio(nominatim_exact, nominatim_exact_error),
+        )),
+        "nominatim_nearby": stack.enter_context(patch(
+            "geocodificacion.services.nominatim.NominatimClient.search_nearby",
+            _mock_servicio(nominatim_nearby, nominatim_nearby_error),
+        )),
+        "here": stack.enter_context(patch(
+            "geocodificacion.services.here.HereClient.search_exact",
+            _mock_servicio(here, here_error),
+        )),
+    }
+    return stack, calls
+
+
+def _post_lote(client, filas):
+    return client.post(
+        "/api/geocodificar-lote/", {"filas": filas}, content_type="application/json"
+    )
+
+
+def test_settings_lote_defaults():
+    from django.conf import settings
+    assert settings.IMPORT_MAX_FILAS == 100
+    assert settings.GEOCODIFICAR_LOTE_MAX == 10
+
+
+def test_env_example_documenta_topes_de_lote():
+    from pathlib import Path
+    env = Path(__file__).resolve().parent.parent / ".env.example"
+    texto = env.read_text(encoding="utf-8")
+    assert "IMPORT_MAX_FILAS=100" in texto
+    assert "GEOCODIFICAR_LOTE_MAX=10" in texto
+
+
+def test_lote_fila_no_objeto_rechaza_sin_consultar_provincias(client):
+    from geocodificacion.services.georef import GeorefServiceError
+
+    stack, calls = _entorno_lote(
+        provincias_error=GeorefServiceError("no debería consultar Georef")
+    )
+    with stack:
+        res = _post_lote(client, [None])
+
+    assert res.status_code == 400
+    assert res.json()["error"]["codigo"] == "solicitud_invalida"
+    calls["provincias"].assert_not_called()
+    calls["geocodificar"].assert_not_called()
+
+
+def test_lote_validacion_local_precede_falla_de_georef(client):
+    from geocodificacion.services.georef import GeorefServiceError
+
+    stack, calls = _entorno_lote(
+        provincias_error=GeorefServiceError("Georef no disponible")
+    )
+    with stack:
+        res = _post_lote(client, [dict(_fila(1), altura="78²")])
+
+    assert res.status_code == 400
+    assert "filas[0].altura" in res.json()["error"]["campos"]
+    calls["provincias"].assert_not_called()
+    calls["geocodificar"].assert_not_called()
+
+
+def test_lote_id_debe_ser_texto_y_altura_ascii(client):
+    stack, calls = _entorno_lote()
+    with stack:
+        id_numerico = _post_lote(client, [dict(_fila(1), id=123)])
+        altura_unicode = _post_lote(client, [dict(_fila(2), altura="٧٨١")])
+
+    assert id_numerico.status_code == 400
+    assert "filas[0].id" in id_numerico.json()["error"]["campos"]
+    assert altura_unicode.status_code == 400
+    assert "filas[0].altura" in altura_unicode.json()["error"]["campos"]
+    calls["geocodificar"].assert_not_called()
+
+
+def test_lote_mixto_conserva_orden_ids_y_estados(client):
+    from geocodificacion.services.georef import GeorefServiceError
+
+    def geocodificar(calle, numero, ciudad, provincia):
+        if calle == "Perú":
+            return [_georef_candidato(-27.7775, -64.2650, "PERU 781")]
+        if calle == "Libertad":
+            return [
+                _georef_candidato(-27.7885, -64.2621, "LIBERTAD 630"),
+                _georef_candidato(-27.7886, -64.2622, "LIBERTAD 631"),
+            ]
+        if calle == "SinCalle":
+            return []
+        raise GeorefServiceError("timeout_or_network")
+
+    filas = [
+        _fila(1, calle="Perú"),
+        _fila(2, calle="Libertad"),
+        _fila(3, calle="SinCalle"),
+        _fila(4, calle="Rota"),
+    ]
+    stack, calls = _entorno_lote(geocodificar=geocodificar)
+    with stack:
+        res = _post_lote(client, filas)
+
+    assert res.status_code == 200
+    body = res.json()["resultados"]
+    assert [r["id"] for r in body] == ["fila-1", "fila-2", "fila-3", "fila-4"]
+    assert [r["estado"] for r in body] == [
+        "encontrada", "ambigua", "sin_resultado", "error",
+    ]
+    assert calls["geocodificar"].call_count == 4
+    assert [c.args[0] for c in calls["geocodificar"].call_args_list] == [
+        "Perú", "Libertad", "SinCalle", "Rota",
+    ]
+
+    # Candidato exacto: forma pública del contrato + proveedor.
+    candidato = body[0]["candidatos"][0]
+    assert set(candidato) == {
+        "lat", "lng", "nombre", "direccion", "proveedor", "aproximada",
+    }
+    assert candidato["proveedor"] == "georef"
+    assert candidato["aproximada"] is False
+    assert candidato["nombre"] is None
+    assert candidato["lat"] == -27.7775
+
+    assert len(body[1]["candidatos"]) == 2
+    assert all(c["proveedor"] == "georef" for c in body[1]["candidatos"])
+
+    assert body[2]["candidatos"] == []
+    assert body[2]["mensaje"] is None
+
+    assert body[3]["candidatos"] == []
+    assert body[3]["mensaje"]
+    assert "http" not in body[3]["mensaje"].lower()
+    assert "Traceback" not in body[3]["mensaje"]
+
+
+def test_lote_proveedores_y_aproximados(client):
+    def nominatim_exact(calle, numero, ciudad, provincia):
+        if calle == "Corrientes":
+            return [_fallback_candidate(1000, street="Avenida Corrientes")]
+        return []
+
+    def here(calle, numero, ciudad, provincia):
+        if calle == "Perú":
+            return [dict(_here_candidate(interpolada=False), _nombre="Perú 781")]
+        if calle == "Belgrano":
+            return [dict(_here_candidate(interpolada=True), _nombre="Belgrano 320")]
+        return []
+
+    filas = [
+        _fila(1, calle="Corrientes", altura="1000"),
+        _fila(2, calle="Perú"),
+        _fila(3, calle="Belgrano", altura="320"),
+    ]
+    stack, _ = _entorno_lote(
+        geocodificar=[], nominatim_exact=nominatim_exact, here=here
+    )
+    with stack:
+        res = _post_lote(client, filas)
+
+    assert res.status_code == 200
+    body = res.json()["resultados"]
+
+    # Nominatim exacto -> encontrada, proveedor nominatim, no aproximada.
+    assert body[0]["estado"] == "encontrada"
+    cand = body[0]["candidatos"][0]
+    assert cand["proveedor"] == "nominatim"
+    assert cand["aproximada"] is False
+    assert cand["nombre"] is None
+    assert cand["direccion"].startswith("Avenida Corrientes 1000")
+
+    # HERE PA/MPA -> exacto, con nombre corto del proveedor.
+    assert body[1]["estado"] == "encontrada"
+    cand = body[1]["candidatos"][0]
+    assert cand["proveedor"] == "here"
+    assert cand["aproximada"] is False
+    assert cand["nombre"] == "Perú 781"
+
+    # HERE interpolado -> siempre ambigua y marcado aproximado.
+    assert body[2]["estado"] == "ambigua"
+    cand = body[2]["candidatos"][0]
+    assert cand["proveedor"] == "here"
+    assert cand["aproximada"] is True
+
+
+def test_lote_aproximados_priorizan_here_y_no_duplican(client):
+    cercanas = [
+        _fallback_candidate(780, city="Santiago del Estero", state="Santiago del Estero"),
+        _fallback_candidate(782, city="Santiago del Estero", state="Santiago del Estero"),
+    ]
+    here_interpolada = dict(_here_candidate(interpolada=True), _nombre="Perú 781")
+    stack, _ = _entorno_lote(
+        geocodificar=[],
+        nominatim_exact=[],
+        nominatim_nearby=cercanas * 2,
+        here=[here_interpolada, here_interpolada],
+    )
+    with stack:
+        res = _post_lote(client, [_fila(1)])
+
+    assert res.status_code == 200
+    resultado = res.json()["resultados"][0]
+    assert resultado["estado"] == "ambigua"
+    assert [c["proveedor"] for c in resultado["candidatos"]] == [
+        "here", "nominatim", "nominatim",
+    ]
+    assert all(c["aproximada"] is True for c in resultado["candidatos"])
+
+
+def test_lote_limita_cinco_candidatos(client):
+    muchos = [_georef_candidato(-27.70 - i / 1000, -64.26) for i in range(7)]
+    stack, _ = _entorno_lote(geocodificar=muchos)
+    with stack:
+        res = _post_lote(client, [_fila(1)])
+
+    assert res.status_code == 200
+    resultado = res.json()["resultados"][0]
+    assert resultado["estado"] == "ambigua"
+    assert len(resultado["candidatos"]) == 5
+
+
+def test_lote_rechaza_mas_filas_que_el_maximo(client):
+    filas = [_fila(i, calle=f"Calle {i}") for i in range(1, 12)]  # 11 > 10
+    stack, calls = _entorno_lote(geocodificar=[])
+    with stack:
+        res = _post_lote(client, filas)
+
+    assert res.status_code == 400
+    assert res.json()["error"]["codigo"] == "solicitud_invalida"
+    assert "filas" in res.json()["error"]["campos"]
+    calls["geocodificar"].assert_not_called()
+
+
+def test_lote_respeta_maximo_configurable(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.GEOCODIFICAR_LOTE_MAX", 2)
+    filas = [_fila(i, calle=f"Calle {i}") for i in range(1, 4)]  # 3 > 2
+    stack, calls = _entorno_lote(geocodificar=[])
+    with stack:
+        res = _post_lote(client, filas)
+
+    assert res.status_code == 400
+    assert "2" in str(res.json()["error"]["campos"]["filas"])
+    calls["geocodificar"].assert_not_called()
+
+
+def test_lote_validacion_rechaza_lote_completo_antes_de_geocodificar(client):
+    filas = [
+        _fila(1),
+        dict(_fila(2), altura="78a"),
+        dict(_fila(3), calle=""),
+        dict(_fila(4), id="fila-1"),
+        dict(_fila(5), calle="x" * 121),
+        dict(_fila(6), id="y" * 81),
+        dict(_fila(7), altura="1234567"),
+        dict(_fila(8), altura="78 1"),
+    ]
+    stack, calls = _entorno_lote(geocodificar=[])
+    with stack:
+        res = _post_lote(client, filas)
+
+    assert res.status_code == 400
+    cuerpo = res.json()["error"]
+    assert cuerpo["codigo"] == "solicitud_invalida"
+    campos = cuerpo["campos"]
+
+    assert "filas[1].altura" in campos
+    assert "filas[2].calle" in campos
+    assert "filas[3].id" in campos
+    assert "filas[4].calle" in campos
+    assert "filas[5].id" in campos
+    assert "filas[6].altura" in campos
+    assert "filas[7].altura" in campos
+
+    # El id de la fila viaja en el detalle cuando está disponible.
+    assert "fila-2" in campos["filas[1].altura"]
+    assert "fila-1" in campos["filas[3].id"]
+
+    # Nada se geocodificó: el lote se rechaza completo.
+    calls["geocodificar"].assert_not_called()
+
+
+def test_lote_provincia_invalida_se_rechaza_antes_de_geocodificar(client):
+    stack, calls = _entorno_lote(geocodificar=[])
+    with stack:
+        res = _post_lote(client, [_fila(1, provincia="Inexistente")])
+
+    assert res.status_code == 400
+    assert "filas[0].provincia" in res.json()["error"]["campos"]
+    calls["geocodificar"].assert_not_called()
+
+
+def test_lote_validacion_estructura(client):
+    stack, calls = _entorno_lote(geocodificar=[])
+    with stack:
+        no_lista = client.post(
+            "/api/geocodificar-lote/", {"filas": "Perú 781"},
+            content_type="application/json",
+        )
+        vacio = client.post(
+            "/api/geocodificar-lote/", {"filas": []},
+            content_type="application/json",
+        )
+        sin_filas = client.post(
+            "/api/geocodificar-lote/", {}, content_type="application/json",
+        )
+        fila_no_objeto = _post_lote(client, ["Perú 781"])
+        campo_faltante = _post_lote(client, [{"id": "f1", "calle": "Perú", "altura": "1",
+                                             "provincia": "Santiago del Estero"}])
+
+    for res in (no_lista, vacio, sin_filas, fila_no_objeto, campo_faltante):
+        assert res.status_code == 400
+        assert res.json()["error"]["codigo"] == "solicitud_invalida"
+
+    assert "filas" in no_lista.json()["error"]["campos"]
+    assert "filas" in vacio.json()["error"]["campos"]
+    assert "filas" in sin_filas.json()["error"]["campos"]
+    assert "filas[0]" in fila_no_objeto.json()["error"]["campos"]
+    assert "filas[0].ciudad" in campo_faltante.json()["error"]["campos"]
+    calls["geocodificar"].assert_not_called()
+
+
+def test_lote_fallos_parciales_no_abortan_el_lote(client):
+    from geocodificacion.services.georef import GeorefServiceError
+
+    def geocodificar(calle, numero, ciudad, provincia):
+        if calle == "Rota":
+            raise GeorefServiceError("http_error")
+        return [_georef_candidato(-27.7775, -64.2650, "PERU 781")]
+
+    filas = [_fila(1, calle="Rota"), _fila(2, calle="Perú"), _fila(3, calle="Perú")]
+    stack, calls = _entorno_lote(geocodificar=geocodificar)
+    with stack:
+        res = _post_lote(client, filas)
+
+    assert res.status_code == 200
+    body = res.json()["resultados"]
+    assert [r["estado"] for r in body] == ["error", "encontrada", "encontrada"]
+    assert body[0]["candidatos"] == []
+    assert all(r["candidatos"] for r in body[1:])
+    assert calls["geocodificar"].call_count == 3
+
+
+def test_lote_sin_resultado_con_georef_sin_coordenadas(client):
+    provs = [{"nombre": "Santiago del Estero"}]
+    payload = {"direcciones": [
+        {"nomenclatura": "X", "ubicacion": {"lat": None, "lon": None},
+         "provincia": {"nombre": "Santiago del Estero"},
+         "localidad_censal": {"nombre": "Santiago del Estero"},
+         "departamento": {"nombre": "Capital"}},
+    ]}
+    responses = [_mock_response({"provincias": provs}), _mock_response(payload)]
+    with patch("geocodificacion.services.georef.requests.get", side_effect=responses) as get, patch(
+        "geocodificacion.services.nominatim.NominatimClient.search_exact", return_value=[]
+    ), patch(
+        "geocodificacion.services.nominatim.NominatimClient.search_nearby", return_value=[]
+    ), patch(
+        "geocodificacion.services.here.HereClient.search_exact", return_value=[]
+    ):
+        res = _post_lote(client, [_fila(1)])
+
+    assert res.status_code == 200
+    resultado = res.json()["resultados"][0]
+    assert resultado == {
+        "id": "fila-1",
+        "estado": "sin_resultado",
+        "candidatos": [],
+        "mensaje": None,
+    }
+    # Validación de provincias antes de geocodificar.
+    assert get.call_count == 2
+
+
+def test_lote_fila_error_cuando_falla_nominatim_sin_alternativas(client):
+    from geocodificacion.services.nominatim import NominatimServiceError
+
+    stack, _ = _entorno_lote(
+        geocodificar=[],
+        nominatim_exact_error=NominatimServiceError("timeout_or_network"),
+        nominatim_nearby_error=NominatimServiceError("timeout_or_network"),
+        here=[],
+    )
+    with stack:
+        res = _post_lote(client, [_fila(1), _fila(2)])
+
+    assert res.status_code == 200
+    for resultado in res.json()["resultados"]:
+        assert resultado["estado"] == "error"
+        assert resultado["candidatos"] == []
+        assert "http" not in resultado["mensaje"].lower()
+        assert "api" not in resultado["mensaje"].lower()
+
+
+def test_lote_procesa_secuencialmente(client):
+    traza = []
+
+    def geocodificar(calle, numero, ciudad, provincia):
+        traza.append(f"in:{calle}")
+        traza.append(f"out:{calle}")
+        return []
+
+    filas = [_fila(i, calle=f"Calle {i}") for i in range(1, 4)]
+    stack, _ = _entorno_lote(geocodificar=geocodificar)
+    with stack:
+        res = _post_lote(client, filas)
+
+    assert res.status_code == 200
+    # Sin intercalado: una fila termina antes de empezar la siguiente.
+    assert traza == [
+        "in:Calle 1", "out:Calle 1",
+        "in:Calle 2", "out:Calle 2",
+        "in:Calle 3", "out:Calle 3",
+    ]
+
+
+def test_lote_provincias_caidas_responde_502(client):
+    from geocodificacion.services.georef import GeorefServiceError
+
+    stack, calls = _entorno_lote(
+        geocodificar=[], provincias_error=GeorefServiceError("timeout_or_network")
+    )
+    with stack:
+        res = _post_lote(client, [_fila(1)])
+
+    assert res.status_code == 502
+    assert res.json()["error"]["codigo"] == "servicio_no_disponible"
+    calls["geocodificar"].assert_not_called()
+
+
+def test_lote_metodo_no_permitido(client):
+    assert client.get("/api/geocodificar-lote/").status_code == 405
+
+
+# --- Regresión: el endpoint individual conserva su contrato ---
+
+
+def test_geocodificar_individual_no_expone_campos_internos(client):
+    stack, _ = _entorno_lote(
+        geocodificar=[_georef_candidato(-27.7775, -64.2650, "PERU 781")]
+    )
+    with stack:
+        res = client.post("/api/geocodificar/", {
+            "calle": "Perú", "numero": "781",
+            "ciudad": "Santiago del Estero", "provincia": "Santiago del Estero",
+        }, content_type="application/json")
+
+    assert res.status_code == 200
+    candidato = res.json()["resultados"][0]
+    assert set(candidato) == {
+        "lat", "lng", "direccion", "provincia", "localidad", "departamento",
+        "aproximada",
+    }
+    assert candidato["aproximada"] is True
+
+
+def test_geocodificar_individual_here_no_expone_nombre_interno(client, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.HERE_ENABLED", True)
+    monkeypatch.setattr("django.conf.settings.HERE_API_KEY", "test-key")
+    here = [dict(_here_candidate(interpolada=False), _nombre="Perú 781")]
+    stack, _ = _entorno_lote(geocodificar=[], nominatim_exact=[], here=here)
+    with stack:
+        res = client.post("/api/geocodificar/", {
+            "calle": "Perú", "numero": "781",
+            "ciudad": "Santiago del Estero", "provincia": "Santiago del Estero",
+        }, content_type="application/json")
+
+    assert res.status_code == 200
+    candidato = res.json()["resultados"][0]
+    assert "_nombre" not in candidato
+    assert "_interpolada" not in candidato
+    assert candidato["aproximada"] is True
+
+
+# ---------------------------------------------------------------------------
+# Exactitud de candidatos Georef en lote (política de discrepancia mínima)
+# ---------------------------------------------------------------------------
+
+def _cand_exactitud(nomenclatura, localidad="Santiago del Estero",
+                    provincia="Santiago del Estero", lat=-27.7775, lng=-64.265):
+    """Candidato Georef con la forma histórica (sin metadatos internos)."""
+    return {
+        "lat": lat,
+        "lng": lng,
+        "direccion": nomenclatura,
+        "provincia": provincia,
+        "localidad": localidad,
+        "departamento": "Capital",
+        "aproximada": True,
+    }
+
+
+def _pedido_exactitud(calle="Peru", altura="781", ciudad="Santiago del Estero",
+                      provincia="Santiago del Estero"):
+    return {
+        "id": "fila-1",
+        "calle": calle,
+        "altura": altura,
+        "ciudad": ciudad,
+        "provincia": provincia,
+    }
+
+
+def test_exactitud_calle_identica_es_exacta():
+    from geocodificacion.services.exactitud import es_candidato_exacto
+
+    candidato = _cand_exactitud(
+        "PERU 781, Santiago del Estero, Capital, Santiago del Estero"
+    )
+    assert es_candidato_exacto(candidato, _pedido_exactitud()) is True
+
+
+def test_exactitud_normaliza_prefijos_acentos_case_y_puntuacion():
+    from geocodificacion.services.exactitud import es_candidato_exacto
+
+    casos = [
+        ("Avenida Corrientes", "1000", "AV. CORRIENTES 1000, San Nicolás, Comuna 1"),
+        ("Av. Corrientes", "1000", "AVENIDA CORRIENTES 1000"),
+        ("Perú", "781", "PERU 781"),
+        ("Avenida San Martín", "781", "AV SAN MARTIN 781"),
+        ("Calle Libertad", "640", "LIBERTAD 640"),
+        ("Avenida 9 de Julio", "1000", "AV. 9 DE JULIO 1000"),
+    ]
+    for calle, altura, nomenclatura in casos:
+        assert es_candidato_exacto(
+            _cand_exactitud(nomenclatura),
+            _pedido_exactitud(calle=calle, altura=altura),
+        ) is True, (calle, nomenclatura)
+
+
+def test_exactitud_acepta_typo_de_una_letra():
+    from geocodificacion.services.exactitud import es_candidato_exacto
+
+    assert es_candidato_exacto(
+        _cand_exactitud("LIBERTAD 640"), _pedido_exactitud(calle="Liberta", altura="640")
+    ) is True
+    assert es_candidato_exacto(
+        _cand_exactitud("PERU 781"), _pedido_exactitud(calle="Peruu")
+    ) is True
+
+
+def test_exactitud_rechaza_typo_de_mas_de_una_letra():
+    from geocodificacion.services.exactitud import es_candidato_exacto
+
+    assert es_candidato_exacto(
+        _cand_exactitud("PERU 781"), _pedido_exactitud(calle="Peruxy")
+    ) is False
+    # Dos ediciones repartidas en dos tokens también superan el umbral.
+    assert es_candidato_exacto(
+        _cand_exactitud("SON MARTEN 781"), _pedido_exactitud(calle="San Martin")
+    ) is False
+
+
+def test_exactitud_rechaza_calle_con_token_extra():
+    from geocodificacion.services.exactitud import es_candidato_exacto
+
+    # "Bateria Libertad" no se convierte en "Libertad" (ni al revés).
+    assert es_candidato_exacto(
+        _cand_exactitud("LIBERTAD 640"),
+        _pedido_exactitud(calle="Bateria Libertad", altura="640"),
+    ) is False
+    assert es_candidato_exacto(
+        _cand_exactitud("BATERIA LIBERTAD 640"),
+        _pedido_exactitud(calle="Libertad", altura="640"),
+    ) is False
+
+
+def test_exactitud_altura_distinta_o_no_verificable_es_aproximada():
+    from geocodificacion.services.exactitud import es_candidato_exacto
+
+    assert es_candidato_exacto(
+        _cand_exactitud("PERU 780"), _pedido_exactitud(altura="781")
+    ) is False
+    # Sin altura verificable desde la estructura => no exacto.
+    for nomenclatura in (None, "PERU, Santiago del Estero, Capital", "S/N", 1234):
+        assert es_candidato_exacto(
+            _cand_exactitud(nomenclatura), _pedido_exactitud()
+        ) is False, nomenclatura
+
+
+def test_exactitud_localidad_o_provincia_contradictoria_no_es_exacta():
+    from geocodificacion.services.exactitud import es_candidato_exacto
+
+    assert es_candidato_exacto(
+        _cand_exactitud("PERU 781", localidad="Buenos Aires"), _pedido_exactitud()
+    ) is False
+    assert es_candidato_exacto(
+        _cand_exactitud("PERU 781", provincia="Buenos Aires"), _pedido_exactitud()
+    ) is False
+    # Ausentes: no hay contradicción posible.
+    assert es_candidato_exacto(
+        _cand_exactitud("PERU 781", localidad=None, provincia=None), _pedido_exactitud()
+    ) is True
+
+
+def test_exactitud_tolera_variantes_de_lugar_y_comuna_de_caba():
+    from geocodificacion.services.exactitud import es_candidato_exacto
+
+    caba = _pedido_exactitud(
+        calle="Avenida Corrientes", altura="1000",
+        ciudad="Ciudad Autónoma de Buenos Aires",
+        provincia="Ciudad Autónoma de Buenos Aires",
+    )
+    assert es_candidato_exacto(
+        _cand_exactitud(
+            "AV CORRIENTES 1000, San Nicolás, Comuna 1",
+            localidad="CABA - Comuna 1",
+            provincia="Ciudad Autónoma de Buenos Aires",
+        ),
+        caba,
+    ) is True
+    assert es_candidato_exacto(
+        _cand_exactitud("PERU 781", localidad="Municipio de Santiago del Estero"),
+        _pedido_exactitud(),
+    ) is True
+
+
+def test_exactitud_funciona_con_candidato_cacheado_sin_metadatos():
+    from geocodificacion.services.exactitud import es_candidato_exacto
+
+    # Forma exacta de una entrada de caché histórica de Georef: sin claves "_".
+    candidato = _cand_exactitud("PERU 781, Santiago del Estero, Capital, Santiago del Estero")
+    assert set(candidato) == {
+        "lat", "lng", "direccion", "provincia", "localidad", "departamento",
+        "aproximada",
+    }
+    assert es_candidato_exacto(candidato, _pedido_exactitud()) is True
+
+
+def test_exactitud_normalizacion_y_distancia_tokens():
+    from geocodificacion.services.exactitud import (
+        _distancia, _normalizar, _tokens_calle,
+    )
+
+    assert _normalizar("Avenida Ñandú") == "avenida nandu"
+    assert _normalizar("AV.  Corrientes, 1000") == "av corrientes 1000"
+    assert _tokens_calle("Av. 9 de Julio") == ["9", "de", "julio"]
+    assert _distancia("peru", "peruu") == 1
+    assert _distancia("peru", "peruxy") == 2
+    assert _distancia("peru", "peru") == 0
+
+
+# --- Integración en el endpoint de lote ---
+
+
+def test_lote_georef_calle_equivalente_es_encontrada(client):
+    stack, _ = _entorno_lote(geocodificar=[_cand_exactitud(
+        "PERU 781, Santiago del Estero, Capital, Santiago del Estero"
+    )])
+    with stack:
+        res = _post_lote(client, [_fila(1, calle="Perú", altura="781")])
+
+    resultado = res.json()["resultados"][0]
+    assert res.status_code == 200
+    assert resultado["estado"] == "encontrada"
+    assert resultado["candidatos"][0]["proveedor"] == "georef"
+    assert resultado["candidatos"][0]["aproximada"] is False
+
+
+def test_lote_georef_typo_minimo_es_exacto(client):
+    stack, _ = _entorno_lote(geocodificar=[_cand_exactitud(
+        "LIBERTAD 640, Santiago del Estero, Capital, Santiago del Estero"
+    )])
+    with stack:
+        res = _post_lote(client, [_fila(1, calle="Liberta", altura="640")])
+
+    resultado = res.json()["resultados"][0]
+    assert resultado["estado"] == "encontrada"
+    assert resultado["candidatos"][0]["aproximada"] is False
+
+
+def test_lote_georef_typo_mayor_es_ambigua_y_aproximada(client):
+    stack, _ = _entorno_lote(geocodificar=[_cand_exactitud(
+        "PERUXY 781, Santiago del Estero, Capital, Santiago del Estero"
+    )])
+    with stack:
+        res = _post_lote(client, [_fila(1, calle="Peru", altura="781")])
+
+    resultado = res.json()["resultados"][0]
+    assert resultado["estado"] == "ambigua"
+    assert len(resultado["candidatos"]) == 1
+    assert resultado["candidatos"][0]["aproximada"] is True
+
+
+def test_lote_georef_token_extra_en_calle_es_aproximada(client):
+    stack, _ = _entorno_lote(geocodificar=[_cand_exactitud(
+        "BATERIA LIBERTAD 640, Santiago del Estero, Capital, Santiago del Estero"
+    )])
+    with stack:
+        res = _post_lote(client, [_fila(1, calle="Libertad", altura="640")])
+
+    resultado = res.json()["resultados"][0]
+    assert resultado["estado"] == "ambigua"
+    assert resultado["candidatos"][0]["aproximada"] is True
+
+
+def test_lote_georef_altura_distinta_es_aproximada(client):
+    stack, _ = _entorno_lote(geocodificar=[_cand_exactitud(
+        "PERU 780, Santiago del Estero, Capital, Santiago del Estero"
+    )])
+    with stack:
+        res = _post_lote(client, [_fila(1, calle="Peru", altura="781")])
+
+    resultado = res.json()["resultados"][0]
+    assert resultado["estado"] == "ambigua"
+    assert resultado["candidatos"][0]["aproximada"] is True
+
+
+def test_lote_georef_localidad_contradictoria_no_es_exacta(client):
+    stack, _ = _entorno_lote(geocodificar=[_cand_exactitud(
+        "PERU 781, Buenos Aires, Comuna 1, Buenos Aires", localidad="Buenos Aires"
+    )])
+    with stack:
+        res = _post_lote(client, [_fila(1, calle="Peru", altura="781")])
+
+    resultado = res.json()["resultados"][0]
+    # Calle y altura coinciden, pero el territorio contradice: no exacto.
+    assert resultado["estado"] == "ambigua"
+    assert resultado["candidatos"][0]["aproximada"] is True
+
+
+def test_lote_georef_sin_nomenclatura_es_aproximada(client):
+    stack, _ = _entorno_lote(geocodificar=[_cand_exactitud(None)])
+    with stack:
+        res = _post_lote(client, [_fila(1)])
+
+    resultado = res.json()["resultados"][0]
+    assert resultado["estado"] == "ambigua"
+    assert resultado["candidatos"][0]["aproximada"] is True
+
+
+def test_lote_georef_mezcla_exacto_y_dudoso_conserva_orden(client):
+    exacto = _cand_exactitud("PERU 781, Santiago del Estero, Capital, Santiago del Estero")
+    dudoso = _cand_exactitud("PERUXY 781, Santiago del Estero, Capital, Santiago del Estero", lat=-27.78)
+    stack, _ = _entorno_lote(geocodificar=[exacto, dudoso])
+    with stack:
+        res = _post_lote(client, [_fila(1, calle="Peru", altura="781")])
+
+    resultado = res.json()["resultados"][0]
+    assert resultado["estado"] == "ambigua"
+    assert [c["aproximada"] for c in resultado["candidatos"]] == [False, True]
+    assert [c["direccion"] for c in resultado["candidatos"]] == [
+        exacto["direccion"], dudoso["direccion"],
+    ]
+
+
+def test_lote_here_y_nominatim_conservan_su_politica_de_exactitud(client):
+    def nominatim_exact(calle, numero, ciudad, provincia):
+        if calle == "Peru":
+            return [{
+                "lat": -27.7775, "lng": -64.265,
+                "direccion": "Otra Calle 999, Santiago del Estero",
+                "provincia": "Santiago del Estero",
+                "localidad": "Santiago del Estero",
+                "departamento": "Capital",
+                "aproximada": True,
+            }]
+        return []
+
+    def here(calle, numero, ciudad, provincia):
+        if calle == "Belgrano":
+            return [dict(_here_candidate(interpolada=False), _nombre="Belgrano 781")]
+        return []
+
+    filas = [_fila(1, calle="Peru", altura="781"), _fila(2, calle="Belgrano", altura="781")]
+    stack, _ = _entorno_lote(
+        geocodificar=[], nominatim_exact=nominatim_exact, here=here
+    )
+    with stack:
+        res = _post_lote(client, filas)
+
+    body = res.json()["resultados"]
+    assert [r["estado"] for r in body] == ["encontrada", "encontrada"]
+    assert body[0]["candidatos"][0]["proveedor"] == "nominatim"
+    assert body[0]["candidatos"][0]["aproximada"] is False
+    assert body[1]["candidatos"][0]["proveedor"] == "here"
+    assert body[1]["candidatos"][0]["aproximada"] is False
+
+
+# --- Guardas: el endpoint individual no cambia ---
+
+
+def test_individual_georef_no_aplica_politica_de_exactitud(client):
+    # Calle con dos ediciones de diferencia: en lote sería ambigua/aproximada.
+    stack, _ = _entorno_lote(geocodificar=[_cand_exactitud(
+        "PERUXY 781, Santiago del Estero, Capital, Santiago del Estero"
+    )])
+    with stack:
+        res = client.post("/api/geocodificar/", {
+            "calle": "Peru", "numero": "781",
+            "ciudad": "Santiago del Estero", "provincia": "Santiago del Estero",
+        }, content_type="application/json")
+
+    assert res.status_code == 200
+    candidato = res.json()["resultados"][0]
+    assert set(candidato) == {
+        "lat", "lng", "direccion", "provincia", "localidad", "departamento",
+        "aproximada",
+    }
+    assert candidato["aproximada"] is True
+    assert all(not clave.startswith("_") for clave in candidato)
+
+
+def test_individual_georef_cacheado_no_expone_claves_internas(client):
+    provs = [{"nombre": "Santiago del Estero"}]
+    payload = {"direcciones": [
+        {"nomenclatura": "PERU 781, Santiago del Estero, Capital, Santiago del Estero",
+         "ubicacion": {"lat": -27.7775, "lon": -64.265},
+         "provincia": {"nombre": "Santiago del Estero"},
+         "localidad_censal": {"nombre": "Santiago del Estero"},
+         "departamento": {"nombre": "Capital"}},
+    ]}
+    responses = [_mock_response({"provincias": provs}), _mock_response(payload)]
+    with patch("geocodificacion.services.georef.requests.get", side_effect=responses):
+        res = client.post("/api/geocodificar/", {
+            "calle": "Peru", "numero": "781",
+            "ciudad": "Santiago del Estero", "provincia": "Santiago del Estero",
+        }, content_type="application/json")
+
+    assert res.status_code == 200
+    candidato = res.json()["resultados"][0]
+    assert set(candidato) == {
+        "lat", "lng", "direccion", "provincia", "localidad", "departamento",
+        "aproximada",
+    }
+    assert all(not clave.startswith("_") for clave in candidato)
+
+    # La misma entrada cacheada, leída por el lote, se clasifica como exacta
+    # sin necesitar metadatos adicionales (y sin volver a pedir a Georef).
+    with patch(
+        "geocodificacion.services.georef.requests.get",
+        side_effect=AssertionError("el lote debe reutilizar la caché"),
+    ), patch(
+        "geocodificacion.services.nominatim.NominatimClient.search_exact", return_value=[]
+    ), patch(
+        "geocodificacion.services.nominatim.NominatimClient.search_nearby", return_value=[]
+    ), patch(
+        "geocodificacion.services.here.HereClient.search_exact", return_value=[]
+    ):
+        lote = _post_lote(client, [_fila(1, calle="Peru", altura="781")])
+    resultado = lote.json()["resultados"][0]
+    assert resultado["estado"] == "encontrada"
+    assert resultado["candidatos"][0]["aproximada"] is False

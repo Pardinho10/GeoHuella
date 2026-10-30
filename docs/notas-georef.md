@@ -51,6 +51,18 @@ Autorizado por el usuario para cubrir coincidencias reconocidas por Georef que n
 - La API key se guarda solo en `backend/.env` (`HERE_API_KEY`) y nunca se expone al frontend. Revisar la cobertura, los términos y el plan de almacenamiento vigentes de HERE antes de persistir resultados.
 - El cliente reintenta una vez los HTTP 429 usando `HERE_MAX_RETRIES` y `HERE_RETRY_DELAY`, respetando `Retry-After` con un tope de 3 segundos. Si el límite persiste, el endpoint sigue funcionando con las sugerencias de OpenStreetMap.
 
+## Criterio de exactitud de Georef en el lote (v0.2.0)
+
+Solo `POST /api/geocodificar-lote/` aplica una verificación adicional sobre la `nomenclatura` de Georef para decidir si un candidato es exacto; `/api/geocodificar/` conserva su semántica histórica (`aproximada: true`) y no aplica este criterio.
+
+- Se parsea la primera parte de la nomenclatura (`CALLE ALTURA`, por ejemplo `AV CORRIENTES 1000`) para obtener calle y altura devueltas.
+- La altura devuelta debe coincidir exactamente con la pedida.
+- Localidad y provincia, cuando Georef las informa, no pueden contradecir la solicitud; se toleran variantes como `municipio de X`, `CABA - Comuna 1` y el alias CABA/Buenos Aires.
+- La calle se normaliza (Unicode, acentos, mayúsculas, puntuación, espacios y prefijos de vía como `Calle`, `Avenida` o `Av.`) y debe conservar la misma cantidad de tokens con **como máximo una edición de carácter en total**. Agregar o quitar una palabra no se tolera: `Bateria Libertad` no equivale a `Libertad`.
+- Si la calle o la altura no se pueden verificar (nomenclatura no parseable, entradas de caché sin `direccion`, etc.), el candidato se entrega como aproximado y exige selección explícita.
+
+La clasificación se calcula al vuelo desde la `direccion` y los campos territoriales públicos del candidato; no se agregan metadatos internos a la respuesta ni a la caché.
+
 ## Limitaciones de la verificación
 
 La especificación referenciada en el HTML antiguo de `/datos-abiertos/georef/openapi` es una interfaz/portal, no el JSON mismo. El portal enlaza el OpenAPI oficial en GitHub. Las consultas reales iniciales cubrieron direcciones de CABA, Córdoba, Mendoza, Río Negro y Santiago del Estero; sus resultados pueden variar a medida que se actualizan las bases de datos de los proveedores. La política del servidor público Nominatim puede cambiar; revalidarla antes de escalar el uso. Un 404 con sugerencias puede tardar varios segundos porque implica varias consultas acotadas al mismo servicio, y las sugerencias dependen de que existan alturas vecinas en OpenStreetMap.

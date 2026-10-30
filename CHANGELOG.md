@@ -3,6 +3,23 @@
 Todas las versiones relevantes de GeoHuella se documentan en este archivo.
 El formato sigue [Versionado Semántico](https://semver.org/lang/es/).
 
+## [0.2.0] - 2026-10-30
+
+### Agregado
+
+- Importación masiva desde texto pegado y archivos CSV UTF-8, con detección y mapeo de columnas, defaults explícitos y edición de filas.
+- Geocodificación secuencial en lotes de hasta 10 filas con progreso, cancelación del cliente, reintentos y resultados independientes por fila.
+- Revisión de candidatos, selección explícita de aproximados, coordenadas manuales, descarte y detección de duplicados por dirección o proximidad.
+- Confirmación antes de guardar importaciones; persiste en el almacenamiento local existente y respeta el máximo de 200 huellas.
+- Avisos accesibles y selección de subconjunto para rutas cuando hay más de 20 huellas; no se implementa división automática en tramos.
+- Criterio de exactitud de Georef tolera como máximo una edición de carácter en total en el nombre de calle, exigiendo altura coincidente y localidad/provincia compatibles; discrepancias mayores o no verificables siguen como aproximadas y sin preseleccionar.
+
+### Notas
+
+- Importación máxima: 100 filas; solicitudes batch de hasta 10 filas.
+- HERE, Georef y Nominatim mantienen sus respectivas limitaciones de cobertura y cuota.
+- Cancelar en el navegador evita iniciar nuevos bloques y aborta la espera del cliente, pero no garantiza detener trabajo ya iniciado en el backend/proveedor.
+
 ## [0.1.1] - 2026-10-30
 
 ### Corregido

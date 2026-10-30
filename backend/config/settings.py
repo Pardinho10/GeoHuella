@@ -111,6 +111,12 @@ ROUTING_CACHE_TTL = config("ROUTING_CACHE_TTL", default=300, cast=int)
 PROVINCIAS_CACHE_TTL = config("PROVINCIAS_CACHE_TTL", default=86400, cast=int)
 GEOCODIFICACION_CACHE_TTL = config("GEOCODIFICACION_CACHE_TTL", default=86400, cast=int)
 
+# Importación masiva (v0.2.0).
+# `IMPORT_MAX_FILAS` es el tope por importación y lo aplica el cliente;
+# `GEOCODIFICAR_LOTE_MAX` es el tope real por solicitud del endpoint de lote.
+IMPORT_MAX_FILAS = config("IMPORT_MAX_FILAS", default=100, cast=int)
+GEOCODIFICAR_LOTE_MAX = config("GEOCODIFICAR_LOTE_MAX", default=10, cast=int)
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 USE_TZ = True
 TIME_ZONE = "America/Argentina/Buenos_Aires"

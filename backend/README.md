@@ -1,6 +1,6 @@
 # Backend — GeoHuella
 
-Versión actual: `0.1.1`, leída desde `../VERSION`.
+Versión actual: `0.2.0`, leída desde `../VERSION`.
 
 API Django + Django REST Framework que actúa como proxy/cache de la API pública de Georef y usa Nominatim (OpenStreetMap) y, opcionalmente, HERE Geocoding & Search como respaldos cuando faltan coordenadas.
 
@@ -31,7 +31,8 @@ Endpoints base `/api/`:
 
 - `salud/`: estado y versión del servicio.
 - `provincias/`: provincias de Georef.
-- `geocodificar/`: búsqueda de direcciones; puede devolver candidatos de Georef o de Nominatim.
+- `geocodificar/`: búsqueda individual de direcciones; puede devolver candidatos de Georef, Nominatim o HERE.
+- `geocodificar-lote/`: geocodificación secuencial de 1 a `GEOCODIFICAR_LOTE_MAX` filas (default 10), con clasificación y errores aislados por fila. La importación completa, de hasta `IMPORT_MAX_FILAS` filas (default 100), la divide el cliente en bloques.
 - `ubicar-coordenadas/`: unidad territorial para un par lat/lng.
 - `ruta/`: ruta por calles entre 2 y 20 puntos; requiere `ROUTING_ENABLED=true` y `ROUTING_API_KEY`.
 - `lugares-cercanos/`: lugares de HERE alrededor de una coordenada; requiere `HERE_PLACES_ENABLED=true` y `HERE_API_KEY`.
@@ -44,6 +45,15 @@ Endpoints base `/api/`:
 - Todas las consultas a Nominatim comparten un lock de archivo entre procesos del mismo host, un intervalo mínimo de 1.1 s y caché. Las sugerencias cercanas tienen un presupuesto máximo configurable (`NOMINATIM_NEARBY_BUDGET_SECONDS`, 6 s por defecto) para acotar la latencia de un 404 sin resultados.
 - HERE es opcional y se activa con `HERE_ENABLED=true` y `HERE_API_KEY`. Los resultados `PA`/`MPA` se devuelven como candidatos; los `interpolated` se devuelven como sugerencias aproximadas. Ante HTTP 429 se reintenta de forma acotada (`HERE_MAX_RETRIES`, `HERE_RETRY_DELAY`).
 - Los lugares cercanos usan HERE Browse y se activan por separado con `HERE_PLACES_ENABLED=true`. La respuesta se cachea `HERE_PLACES_CACHE_TTL` segundos y no se persiste.
+
+## Lote de importación y criterio de exactitud (v0.2.0)
+
+- `POST /api/geocodificar-lote/` reutiliza `resolver_direccion`, la caché y el lock global de Nominatim del endpoint individual; procesa las filas de forma secuencial y nunca en paralelo.
+- Una fila inválida rechaza el lote completo con 400 antes de consultar proveedores; los errores se informan en `error.campos` como `filas[<índice>].<campo>`. Si no se puede obtener la lista oficial de provincias, responde 502 `servicio_no_disponible`.
+- Exactitud de Georef en el lote (`services/exactitud.py`): un candidato es exacto solo si la altura coincide, la localidad y la provincia no contradicen la solicitud y la calle normalizada conserva la misma cantidad de tokens con **como máximo una edición de carácter en total**. Si la calle o la altura no se pueden verificar, el candidato se entrega como aproximado.
+- Nominatim exacto y HERE `PA`/`MPA` conservan su validación propia; HERE interpolado y las alturas vecinas de Nominatim siempre son aproximados. El endpoint individual no aplica este criterio y mantiene su semántica histórica (`aproximada: true`).
+- Los fallos de proveedor se aíslan como `estado: "error"` en la fila; no se persisten filas ni puntos y no se registran direcciones completas.
+- La cancelación del cliente evita iniciar nuevos bloques, pero el backend puede continuar y consumir cuota del bloque ya en curso.
 
 ## Rutas
 
@@ -60,6 +70,7 @@ Endpoints base `/api/`:
 ```bash
 source .venv/bin/activate
 pytest
+python manage.py check
 ```
 
 Los tests simulan Georef, Nominatim y el proveedor de rutas (sin red). La caché se aísla por test.

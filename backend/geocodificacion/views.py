@@ -3,12 +3,11 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from .serializers import (
-    GeocodificarSerializer, UbicarCoordenadasSerializer, RutaSerializer,
-    LugaresCercanosSerializer,
+    GeocodificarSerializer, GeocodificarLoteSerializer, UbicarCoordenadasSerializer,
+    RutaSerializer, LugaresCercanosSerializer,
 )
 from .services.georef import GeorefClient, GeorefServiceError
-from .services.nominatim import NominatimClient, NominatimServiceError
-from .services.here import HereClient, HereServiceError
+from .services.consulta import resolver_direccion, procesar_fila_lote
 from .services.routing import RoutingClient, RoutingServiceError
 from .services.places import HerePlacesClient, HerePlacesServiceError
 from config.version import VERSION
@@ -46,11 +45,44 @@ def geocodificar(request):
         )
     data = serializer.validated_data
 
-    client = GeorefClient()
-    try:
-        resultados = client.geocodificar(
-            data["calle"], data["numero"], data["ciudad"], data["provincia"]
+    resultado = resolver_direccion(
+        data["calle"], data["numero"], data["ciudad"], data["provincia"]
+    )
+
+    if resultado["fallo_primario"]:
+        return Response(
+            {"error": {"codigo": "servicio_no_disponible",
+                       "mensaje": "El servicio de georreferencia no está disponible."}},
+            status=status.HTTP_502_BAD_GATEWAY,
         )
+
+    if resultado["exactos"]:
+        return Response({"resultados": [item["candidato"] for item in resultado["exactos"]]})
+
+    error_body = {
+        "codigo": "no_encontrada",
+        "mensaje": "No se pudo ubicar la dirección. Revisá la calle, el número y la ciudad.",
+    }
+    if resultado["aproximados"]:
+        error_body["sugerencias"] = [item["candidato"] for item in resultado["aproximados"]]
+    return Response(
+        {"error": error_body},
+        status=status.HTTP_404_NOT_FOUND,
+    )
+
+
+@api_view(["POST"])
+def geocodificar_lote(request):
+    """Geocodifica hasta `GEOCODIFICAR_LOTE_MAX` direcciones, en orden.
+
+    Procesa las filas secuencialmente reutilizando la misma lógica que
+    `/api/geocodificar/` (incluida la caché y el rate-lock global de
+    Nominatim). Los fallos de proveedor se aíslan por fila como
+    `estado: "error"`; no se persiste nada y no se agregan puntos.
+    """
+    serializer = GeocodificarLoteSerializer(data=request.data)
+    try:
+        serializer.is_valid(raise_exception=True)
     except GeorefServiceError:
         return Response(
             {"error": {"codigo": "servicio_no_disponible",
@@ -58,70 +90,9 @@ def geocodificar(request):
             status=status.HTTP_502_BAD_GATEWAY,
         )
 
-    if resultados:
-        return Response({"resultados": resultados})
-
-    # Fallback exacto con Nominatim.
-    nominatim = NominatimClient()
-    try:
-        exactos = nominatim.search_exact(
-            data["calle"], data["numero"], data["ciudad"], data["provincia"]
-        )
-    except NominatimServiceError:
-        exactos = []
-
-    if exactos:
-        return Response({"resultados": exactos})
-
-    # Fallback opcional con HERE. Los resultados PA/MPA son exactos;
-    # los interpolated se devuelven como sugerencias aproximadas.
-    here = HereClient()
-    try:
-        here_results = here.search_exact(
-            data["calle"], data["numero"], data["ciudad"], data["provincia"]
-        )
-    except HereServiceError:
-        here_results = []
-
-    here_exactos = [c for c in here_results if not c.get("_interpolada")]
-    if here_exactos:
-        return Response({"resultados": [HereClient.publico(c) for c in here_exactos]})
-
-    # Sugerencias de alturas cercanas, misma calle/localidad/provincia.
-    try:
-        sugerencias = nominatim.search_nearby(
-            data["calle"], data["numero"], data["ciudad"], data["provincia"]
-        )
-    except NominatimServiceError:
-        sugerencias = []
-
-    # HERE interpolado va primero, luego las sugerencias de Nominatim.
-    combinadas = [HereClient.publico(c) for c in here_results if c.get("_interpolada")]
-    vistas = set()
-    sugerencias_unicas = []
-    for candidate in combinadas + list(sugerencias):
-        key = (
-            round(float(candidate.get("lat", 0)), 6),
-            round(float(candidate.get("lng", 0)), 6),
-            candidate.get("direccion"),
-        )
-        if key in vistas:
-            continue
-        vistas.add(key)
-        sugerencias_unicas.append(candidate)
-        if len(sugerencias_unicas) >= 5:
-            break
-
-    error_body = {
-        "codigo": "no_encontrada",
-        "mensaje": "No se pudo ubicar la dirección. Revisá la calle, el número y la ciudad.",
-    }
-    if sugerencias_unicas:
-        error_body["sugerencias"] = sugerencias_unicas
-    return Response(
-        {"error": error_body},
-        status=status.HTTP_404_NOT_FOUND,
-    )
+    filas = serializer.validated_data["filas"]
+    resultados = [procesar_fila_lote(fila) for fila in filas]
+    return Response({"resultados": resultados})
 
 
 @api_view(["POST"])

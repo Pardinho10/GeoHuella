@@ -4,7 +4,7 @@
 
 Single page educativa, independiente, con mapa MapLibre GL JS a pantalla completa y panel flotante para crear elementos genéricos de mapa. Cada elemento es exclusivamente un punto geográfico; no modela conceptos de otros sistemas. La búsqueda por dirección puede devolver varios candidatos, que se previsualizan en el mapa y se agregan solo después de que el usuario elige uno o varios. También se pueden ingresar coordenadas directamente.
 
-Incluye rutas por calles entre huellas seleccionadas, con perfiles caminando, auto y bici, y optimización opcional del orden de visita. No incluye autenticación, base de datos de negocio, edición de elementos guardados, importación/exportación, tiempo real, geolocalización, internacionalización, Docker ni despliegue.
+Incluye rutas por calles entre huellas seleccionadas, con perfiles caminando, auto y bici, optimización opcional del orden de visita, edición de huellas e importación masiva progresiva desde texto y CSV (v0.2.0). No incluye autenticación, base de datos de negocio, tiempo real, geolocalización, internacionalización, Docker ni despliegue.
 
 ## Decisiones de producto
 
@@ -17,11 +17,13 @@ Incluye rutas por calles entre huellas seleccionadas, con perfiles caminando, au
 | Elementos | Genéricos; varios puntos, hasta 200 |
 | Búsqueda de dirección | Campos calle, número, ciudad, provincia; mostrar hasta 5 candidatos ubicables y dejar seleccionar uno o varios |
 | Selección | Los candidatos se muestran provisionalmente; no se persisten ni cuentan hasta agregarlos explícitamente |
+| Importación masiva (v0.2.0) | Texto con una dirección por línea y CSV; máximo 100 filas por importación (`IMPORT_MAX_FILAS`) y 10 por solicitud (`GEOCODIFICAR_LOTE_MAX`); edición/revisión por fila; adición solo tras confirmar; Excel fuera de alcance |
+| Exactitud en el lote | Georef solo se clasifica exacto con altura coincidente, localidad/provincia sin contradicción y calle con igual cantidad de tokens y como máximo una edición de carácter en total. Si no se puede verificar, el candidato es aproximado y nunca queda preseleccionado. El endpoint individual no aplica este criterio |
 | Nombre automático | Si se agrega un elemento sin nombre, asignar `Elemento N`; el contador solo sube al crear un elemento con nombre automático, no al buscar, no para nombres personalizados y nunca baja al borrar |
 | Coordenadas | En campos separados admitir punto o coma decimal. En pegado de par admitir `lat, lng` con puntos decimales o `lat; lng` con comas decimales; sin separadores de miles |
 | Puntos superpuestos | Aplicar desplazamiento visual pequeño en píxeles a marcadores coincidentes mediante `offset` de MapLibre; no alterar coordenadas guardadas ni mostradas. El desplazamiento debe recalcularse de modo estable según zoom y conjunto de puntos; la tarjeta y el ajuste de vista usan siempre la posición geográfica real |
 | Marca | GeoHuella; cada punto se representa con una huella de perro SVG. Lema: “Cada lugar deja una huella”. |
-| Rutas | Entre 2 y 20 huellas seleccionadas; perfiles caminando, auto y bici; opción de optimizar orden e ida y vuelta. La ruta se dibuja en MapLibre y no se persiste. Con ida y vuelta, la ida se muestra sólida y el regreso punteado en otro color, con leyenda en el resumen. |
+| Rutas | Entre 2 y 20 huellas seleccionadas; perfiles caminando, auto y bici; opción de optimizar orden e ida y vuelta. La ruta se dibuja en MapLibre y no se persiste. Con ida y vuelta, la ida se muestra sólida y el regreso punteado en otro color, con leyenda en el resumen. Si la lista supera 20 huellas, se avisa del límite y se elige un subconjunto; no hay división automática en tramos |
 | Estilo | Panel cálido editorial sobre mapa oscuro, tipografía Poppins y paleta `#251605`, `#c57b57`, `#f1ab86`, `#f7dba7`, `#9cafb7`; interfaz en español |
 | Versiones | Estables vigentes fijadas en archivos de dependencias |
 | Pruebas | Backend pytest + pytest-django; frontend Vitest + React Testing Library |
@@ -50,6 +52,8 @@ La lista permite editar el nombre de una huella, subirla o bajarla para cambiar 
 
 El botón “Ruta” abre un panel para seleccionar entre 2 y 20 huellas. Cada fila de la lista se puede marcar o desmarcar; las filas seleccionadas se resaltan. Se eligen el punto de inicio y, opcionalmente, un punto final. También se elige el perfil (Caminando, Auto o Bici) y, opcionalmente, “Optimizar orden” y “Volver al inicio”. El inicio queda primero y el final último en el arreglo enviado; al optimizar, VROOM ordena los intermedios. Final y “Volver al inicio” son excluyentes. “Trazar ruta” llama a `POST /api/ruta/` y muestra una línea GeoJSON sobre el mapa, distancia, duración y cantidad de huellas. La ruta se cachea en el backend y no se guarda en `localStorage`; “Quitar ruta” solo elimina la visualización. Si se elimina una huella usada por la ruta, la ruta se descarta. Los errores del proveedor se muestran dentro del panel de ruta.
 
+Cuando la lista tiene más de 20 huellas, el panel avisa cuántas quedan fuera del límite y explica que se elige un subconjunto; al llegar a 20 seleccionadas indica cómo seguir (desmarcar una o limpiar la selección) y deshabilita el resto con referencia accesible al aviso. “Limpiar selección” no borra huellas. No se divide la ruta en tramos: el recorrido se calcula en un solo tramo con las huellas elegidas.
+
 ### Lugares cercanos
 
 Cada huella guardada tiene una acción “Cerca”. Al activarla se consulta `GET /api/lugares-cercanos/` con las coordenadas de la huella y se muestran hasta cinco lugares de HERE con nombre, categoría, distancia y dirección. La tarjeta aparece sobre la lista de puntos y se puede cerrar. Los resultados se consultan al momento, no se guardan en `localStorage` y solo se cachean en el backend durante un período corto. Si el servicio no está configurado o falla, se muestra un error dentro de la tarjeta sin afectar los puntos ni las rutas.
@@ -65,6 +69,10 @@ Los lugares encontrados se muestran como marcadores numerados en el mapa, con el
 - Si dos o más elementos tienen la misma coordenada, separar sus iconos un poco en pantalla para que se vean y puedan seleccionarse. Mantener exactos los datos de coordenadas y usar posición verdadera para lista, tooltip y foco; se permite un conector visual sutil.
 - Lista con color, nombre, dirección/coordenadas resumidas; clic centra el mapa; acción para eliminar; “Quitar todos” requiere confirmación. Estado vacío explica brevemente cómo agregar el primer punto. Nombres largos se recortan visualmente con puntos suspensivos.
 - “Ver todos” ajusta los límites a elementos guardados. Al recargar con elementos guardados, el mapa reencuadra para mostrarlos.
+
+### Importación masiva (v0.2.0)
+
+La importación permite pegar una dirección por línea o cargar un CSV. Antes de geocodificar, la persona revisa y edita los datos estructurados y define ciudad/provincia por defecto cuando corresponda; la app no inventa campos territoriales. La geocodificación corre en bloques secuenciales de hasta 10 filas, con progreso y cancelación entre bloques; cancelar evita iniciar nuevos bloques, conserva lo resuelto y no garantiza detener el trabajo ya iniciado en el backend. Cada fila puede quedar pendiente, buscando, encontrada, ambigua, sin resultado, con error aislado o cancelada; los resultados aproximados requieren selección explícita y ninguna fila ambigua queda preseleccionada. Duplicados por texto normalizado o coordenadas hasta 5 m se marcan antes de confirmar. Nada se agrega a `localStorage` hasta pulsar “Agregar N huellas al mapa”. Límite 100 filas por importación. Ver el detalle en [`fase-1-importacion-masiva.md`](fase-1-importacion-masiva.md).
 
 ## Persistencia local
 
@@ -87,9 +95,9 @@ El contador se conserva aunque se elimine el elemento con el número más alto. 
 
 ## Capa de API y pruebas frontend
 
-La interfaz de API en `src/api/` ofrece `obtenerProvincias()`, `geocodificar(direccion)` (devuelve `resultados[]`), `ubicarCoordenadas(lat, lng)` y `calcularRuta({ puntos, perfil, volver_al_inicio })`. `VITE_API_BASE_URL` configura backend y `VITE_USAR_MOCK=true|false` selecciona mock o servicio real.
+La interfaz de API en `src/api/` ofrece `obtenerProvincias()`, `geocodificar(direccion)` (devuelve `resultados[]`), `geocodificarLote(filas)` (máximo 10 filas, devuelve `resultados[]` con `id`, `estado`, `candidatos` y `mensaje`), `ubicarCoordenadas(lat, lng)`, `calcularRuta({ puntos, perfil, volver_al_inicio, optimizar, fin })` y `buscarLugaresCercanos(lat, lng, limit)`. `VITE_API_BASE_URL` configura backend y `VITE_USAR_MOCK=true|false` selecciona mock o servicio real; el mock cubre también el lote para probar la importación sin backend.
 
-Pruebas obligatorias: validación, coma decimal y par pegado; lógica de lista (alta, baja, quitar todos, límite y paleta cíclica); localStorage (lectura/escritura/corrupto/no disponible); cliente API para respuestas y errores del contrato; tarjeta JSX con textos y coordenadas; selección y presentación de candidatos múltiples; marcadores coincidentes visibles sin mutar ubicaciones; formato de distancia/duración y flujo de selección, trazado y limpieza de ruta.
+Pruebas obligatorias: validación, coma decimal y par pegado; lógica de lista (alta, baja, quitar todos, límite y paleta cíclica); localStorage (lectura/escritura/corrupto/no disponible); cliente API para respuestas y errores del contrato; tarjeta JSX con textos y coordenadas; selección y presentación de candidatos múltiples; marcadores coincidentes visibles sin mutar ubicaciones; formato de distancia/duración y flujo de selección, trazado y limpieza de ruta; importación (parser CSV/texto con BOM, CRLF, comillas y delimitadores, mapeo de columnas, validación, lote secuencial con cancelación, duplicados y confirmación) y límite de 20 huellas en rutas con aviso de subconjunto.
 
 ## Lista de verificación de integración
 
@@ -105,6 +113,8 @@ Pruebas obligatorias: validación, coma decimal y par pegado; lógica de lista (
 10. Ruta: seleccionar 2–20 huellas, elegir inicio y final, probar los tres perfiles, optimización de orden, ida y vuelta, distancia/duración y “Quitar ruta”.
 11. Lugares cercanos: abrir “Cerca” en una huella, revisar categorías y distancias, centrar un lugar y cerrar la tarjeta.
 12. Lista: editar un nombre, subir/bajar una huella, filtrar por nombre o dirección y limpiar el filtro.
-13. Panel utilizable en móvil y escritorio.
-14. Tests de ambos proyectos pasan.
-15. Consola del navegador sin errores ni advertencias relevantes.
+13. Importación v0.2.0: pegar texto y cargar CSV UTF-8, corregir/mapear columnas, defaults, límite 100, lotes secuenciales/progreso/cancelación, revisar errores y aproximados, duplicados y confirmar persistencia. No requiere un archivo CSV de muestra comprometido; generar uno temporal para smoke.
+14. Probar importadas en ruta con subconjunto, límites 20 y aviso si hay más.
+15. Panel utilizable en móvil y escritorio.
+16. Tests de ambos proyectos pasan.
+17. Consola del navegador sin errores ni advertencias relevantes.

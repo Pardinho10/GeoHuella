@@ -12,6 +12,8 @@ async function request(path, options = {}) {
       ...options,
     });
   } catch (err) {
+    // La cancelación explícita del usuario no es un fallo de red.
+    if (err?.name === 'AbortError') throw err;
     const e = new Error('No se pudo conectar con el servidor');
     e.codigo = 'conexion';
     throw e;
@@ -44,6 +46,19 @@ export async function geocodificar(direccion) {
   const data = await request('/api/geocodificar/', {
     method: 'POST',
     body: JSON.stringify(direccion || {}),
+  });
+  return Array.isArray(data?.resultados) ? data.resultados : [];
+}
+
+/**
+ * Geocodificación en lote (v0.2.0). Máximo 10 filas por solicitud.
+ * El backend devuelve un resultado por `id`, en el mismo orden de entrada.
+ */
+export async function geocodificarLote(filas, { signal } = {}) {
+  const data = await request('/api/geocodificar-lote/', {
+    method: 'POST',
+    body: JSON.stringify({ filas: Array.isArray(filas) ? filas : [] }),
+    ...(signal ? { signal } : {}),
   });
   return Array.isArray(data?.resultados) ? data.resultados : [];
 }

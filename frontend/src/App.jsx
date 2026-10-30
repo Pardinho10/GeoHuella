@@ -1,9 +1,10 @@
 import React, { Suspense, useEffect, useState } from 'react';
-import { cargarElementos, guardarElementos, cargarContador, guardarContador, colorSeguro } from './lib/storage.js';
+import { cargarElementos, guardarElementos, cargarContador, guardarContador, colorSeguro, MAX_ELEMENTOS } from './lib/storage.js';
 import { agregarCandidatos, parsearCoordenada, parsearParPegado, enRangoArgentina, normalizarTexto } from './lib/elementos.js';
 import { obtenerProvincias, geocodificar, ubicarCoordenadas, calcularRuta, buscarLugaresCercanos } from './api';
 import IconHuella from './components/IconHuella.jsx';
-import { MAX_PUNTOS_RUTA, PERFILES_RUTA, etiquetaPerfil, formatearDistancia, formatearDuracion } from './lib/ruta.js';
+import Importador from './components/Importador.jsx';
+import { MAX_PUNTOS_RUTA, PERFILES_RUTA, etiquetaPerfil, formatearDistancia, formatearDuracion, analizarLimiteRuta, mensajeExcedenteRuta, mensajeMaximoRuta } from './lib/ruta.js';
 import { VERSION } from './version.js';
 
 const Mapa = React.lazy(() => import('./components/Mapa.jsx'));
@@ -33,6 +34,7 @@ export default function App() {
   const [provinciasIntento, setProvinciasIntento] = useState(0);
   const [panelAbierto, setPanelAbierto] = useState(true);
   const [tabActiva, setTabActiva] = useState('direccion');
+  const [importando, setImportando] = useState(false);
 
   // Dirección
   const [nombreDir, setNombreDir] = useState('');
@@ -443,7 +445,51 @@ export default function App() {
     });
   }
 
+  /**
+   * Alta de puntos importados. Reutiliza `agregarCandidatos` (nombres automáticos,
+   * colores cíclicos, contador monotónico y tope MAX_ELEMENTOS) una vez por fila,
+   * para respetar el nombre propio de cada huella.
+   */
+  function agregarImportados(items) {
+    let lista = elementos;
+    let c = contador;
+    let agregados = 0;
+    let noAgregados = 0;
+    let primero = null;
+
+    for (const item of Array.isArray(items) ? items : []) {
+      const res = agregarCandidatos(
+        [{ lat: item.lat, lng: item.lng, direccion: item.direccion, origen: item.origen }],
+        item.nombre,
+        lista,
+        c,
+      );
+      lista = res.elementos;
+      c = res.contador;
+      agregados += res.agregados.length;
+      noAgregados += res.noAgregados;
+      if (!primero && res.agregados[0]) primero = res.agregados[0];
+    }
+
+    setElementos(lista);
+    setContador(c);
+
+    if (noAgregados > 0) {
+      setError(`No hay espacio para todos: se agregaron ${agregados}. El límite es ${MAX_ELEMENTOS} huellas.`);
+    }
+    if (primero) setFoco([primero.lat, primero.lng]);
+
+    return { agregados, noAgregados };
+  }
+
+  function abrirImportacion() {
+    cancelarEdicion();
+    setModoRuta(false);
+    setImportando(true);
+  }
+
   function abrirRuta() {
+    setImportando(false);
     cancelarEdicion();
     if (ruta) {
       setSeleccionRuta(new Set(ruta.ids));
@@ -519,6 +565,15 @@ export default function App() {
     setErrorRuta(null);
   }
 
+  /** Vacía la selección de la ruta sin tocar las huellas guardadas. */
+  function limpiarSeleccionRuta() {
+    setSeleccionRuta(new Set());
+    setInicioRutaId(null);
+    setFinRutaId(null);
+    setRuta(null);
+    setErrorRuta(null);
+  }
+
   async function trazarRuta() {
     const elegidos = elementos.filter((el) => seleccionRuta.has(el.id));
     if (elegidos.length < 2) {
@@ -567,6 +622,16 @@ export default function App() {
   const elementosVisibles = filtroActivo
     ? elementos.filter((el) => normalizarTexto(`${el.nombre} ${el.direccion || ''}`).includes(consultaFiltro))
     : elementos;
+
+  const limiteRuta = analizarLimiteRuta({
+    total: elementos.length,
+    visibles: elementosVisibles.length,
+    seleccionados: seleccionRuta.size,
+    max: MAX_PUNTOS_RUTA,
+  });
+  // El tope solo se anuncia mientras hay huellas que todavía podrían sumarse.
+  const avisoMaximoRuta = limiteRuta.alcanzoMaximo && limiteRuta.hayDisponibles;
+  const idAvisoMaximoRuta = 'ruta-aviso-maximo';
 
   return (
     <div className={`app-shell ${panelAbierto ? 'panel-abierto' : 'panel-cerrado'}`}>
@@ -920,6 +985,14 @@ export default function App() {
                   <button
                     type="button"
                     className="btn btn-soft btn-sm"
+                    onClick={abrirImportacion}
+                    aria-label="Importar direcciones desde texto o CSV"
+                  >
+                    Importar
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-soft btn-sm"
                     onClick={abrirRuta}
                     disabled={elementos.length < 2}
                     aria-label="Armar ruta entre huellas"
@@ -982,6 +1055,18 @@ export default function App() {
                       Cancelar
                     </button>
                   </div>
+
+                  {limiteRuta.hayExcedente && !avisoMaximoRuta && (
+                    <p className="ruta-aviso ruta-aviso--info" id="ruta-aviso-limite" role="status">
+                      {mensajeExcedenteRuta(limiteRuta, { filtroActivo })}
+                    </p>
+                  )}
+
+                  {avisoMaximoRuta && (
+                    <p className="ruta-aviso ruta-aviso--alerta" id={idAvisoMaximoRuta} role="status">
+                      {mensajeMaximoRuta(limiteRuta)}
+                    </p>
+                  )}
 
                   <div className="ruta-perfiles" role="group" aria-label="Medio de transporte">
                     {PERFILES_RUTA.map((perfil) => (
@@ -1049,15 +1134,30 @@ export default function App() {
                   <p className="ruta-nota">El recorrido empieza en el punto de inicio elegido; con optimización, VROOM ordena el resto.</p>
 
                   <div className="ruta-panel-foot">
-                    <span className="ruta-count">{seleccionRuta.size} de {MAX_PUNTOS_RUTA}</span>
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm"
-                      onClick={trazarRuta}
-                      disabled={calculandoRuta || seleccionRuta.size < 2}
-                    >
-                      {calculandoRuta ? <span className="loading">Calculando…</span> : 'Trazar ruta'}
-                    </button>
+                    <span className="ruta-count">
+                      {seleccionRuta.size} de {MAX_PUNTOS_RUTA}
+                      {avisoMaximoRuta ? ' · máximo alcanzado' : ''}
+                    </span>
+                    <div className="ruta-panel-acciones">
+                      {seleccionRuta.size > 0 && (
+                        <button
+                          type="button"
+                          className="btn btn-soft btn-xs"
+                          onClick={limpiarSeleccionRuta}
+                          aria-label="Limpiar selección de la ruta"
+                        >
+                          Limpiar selección
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={trazarRuta}
+                        disabled={calculandoRuta || seleccionRuta.size < 2}
+                      >
+                        {calculandoRuta ? <span className="loading">Calculando…</span> : 'Trazar ruta'}
+                      </button>
+                    </div>
                   </div>
                   {errorRuta && <p className="ruta-error" role="alert">{errorRuta}</p>}
                 </section>
@@ -1177,6 +1277,10 @@ export default function App() {
                     const indice = elementos.findIndex((item) => item.id === el.id);
                     const enRuta = seleccionRuta.has(el.id);
                     const editando = editandoId === el.id;
+                    // Con el tope alcanzado la huella no se puede sumar: el aviso
+                    // del panel explica por qué y cómo elegir un subconjunto.
+                    const topeAlcanzadoRuta = modoRuta && !enRuta && seleccionRuta.size >= MAX_PUNTOS_RUTA;
+                    const descripcionTopeRuta = topeAlcanzadoRuta && avisoMaximoRuta ? idAvisoMaximoRuta : undefined;
                     return (
                       <div className={`element-row ${enRuta ? 'is-ruta' : ''} ${editando ? 'is-editing' : ''}`} key={el.id}>
                         {editando ? (
@@ -1207,8 +1311,10 @@ export default function App() {
                                 className="ruta-check"
                                 checked={enRuta}
                                 onChange={() => toggleRutaElemento(el.id)}
-                                disabled={!enRuta && seleccionRuta.size >= MAX_PUNTOS_RUTA}
+                                disabled={topeAlcanzadoRuta}
                                 aria-label={`Incluir ${el.nombre} en la ruta`}
+                                aria-describedby={descripcionTopeRuta}
+                                title={topeAlcanzadoRuta ? `Máximo de ${MAX_PUNTOS_RUTA} huellas alcanzado. Desmarcá una para incluir ${el.nombre}.` : undefined}
                               />
                             )}
                             <button
@@ -1216,6 +1322,7 @@ export default function App() {
                               className="element-main"
                               onClick={() => (modoRuta ? toggleRutaElemento(el.id) : seleccionarElemento(el))}
                               aria-label={modoRuta ? `Seleccionar ${el.nombre} para la ruta` : `Centrar mapa en ${el.nombre}`}
+                              aria-describedby={descripcionTopeRuta}
                             >
                               <span className="element-headline">
                                 <span className="element-dot" style={{ color: colorSeguro(el.color), background: colorSeguro(el.color) }} />
@@ -1285,6 +1392,16 @@ export default function App() {
               )}
             </section>
           </div>
+
+          {importando && (
+            <Importador
+              abierto={importando}
+              onCerrar={() => setImportando(false)}
+              provincias={provincias}
+              elementos={elementos}
+              onAgregar={agregarImportados}
+            />
+          )}
         </aside>
       )}
     </div>

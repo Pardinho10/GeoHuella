@@ -5,6 +5,9 @@ import {
   etiquetaPerfil,
   boundsDeRuta,
   tramosDeRuta,
+  TRAMOS_RUTA,
+  pinturaTramo,
+  leyendaRuta,
 } from '../lib/ruta.js';
 
 describe('utilidades de ruta', () => {
@@ -72,5 +75,71 @@ describe('tramos de ida y regreso', () => {
     const tramos = tramosDeRuta(ruta);
     expect(tramos.regreso).toBeNull();
     expect(tramos.ida).toBe(ruta.ruta);
+  });
+});
+
+describe('estilo y leyenda de tramos de ruta', () => {
+  const rutaConVuelta = {
+    volverInicio: true,
+    ruta: {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        properties: { way_points: [0, 2, 3] },
+        geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1], [2, 2], [0, 0]] },
+      }],
+    },
+  };
+  const rutaSencilla = {
+    volverInicio: false,
+    ruta: {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] },
+      }],
+    },
+  };
+
+  it('ida y regreso se distinguen por color, grosor, trama y desplazamiento', () => {
+    const { ida, regreso } = TRAMOS_RUTA;
+    expect(ida.color).not.toBe(regreso.color);
+    expect(ida.ancho).toBeGreaterThan(regreso.ancho);
+    expect(ida.guion).toBeNull();
+    expect(Array.isArray(regreso.guion)).toBe(true);
+    // La ida va centrada; el regreso se corre al costado. Como su geometría
+    // está invertida, el signo negativo lo manda al lado opuesto de la ida.
+    expect(ida.desplazamiento).toBe(0);
+    expect(regreso.desplazamiento).toBeLessThan(0);
+    expect(Math.abs(regreso.desplazamiento)).toBeGreaterThan(ida.ancho / 2 + regreso.ancho / 2);
+  });
+
+  it('el borde es continuo y el guion solo afecta al trazo visible', () => {
+    const borde = pinturaTramo(TRAMOS_RUTA.regreso, { borde: true });
+    const trazo = pinturaTramo(TRAMOS_RUTA.regreso);
+    expect(borde['line-width']).toBeGreaterThan(trazo['line-width']);
+    expect(borde['line-dasharray']).toBeUndefined();
+    expect(trazo['line-dasharray']).toEqual(TRAMOS_RUTA.regreso.guion);
+    expect(trazo['line-color']).toBe(TRAMOS_RUTA.regreso.color);
+    expect(borde['line-offset']).toBe(trazo['line-offset']);
+  });
+
+  it('la leyenda sigue la elección de ida y vuelta', () => {
+    const vuelta = leyendaRuta(rutaConVuelta);
+    expect(vuelta.map((t) => t.etiqueta)).toEqual(['Ida', 'Regreso']);
+    expect(vuelta[0].color).toBe(TRAMOS_RUTA.ida.color);
+    expect(vuelta[1].color).toBe(TRAMOS_RUTA.regreso.color);
+    expect(vuelta[1].guion).toEqual(TRAMOS_RUTA.regreso.guion);
+
+    const sencilla = leyendaRuta(rutaSencilla);
+    expect(sencilla).toHaveLength(1);
+    expect(sencilla[0].etiqueta).toBe('Recorrido');
+    expect(sencilla[0].color).toBe(TRAMOS_RUTA.ida.color);
+  });
+
+  it('no hay leyenda sin ruta', () => {
+    expect(leyendaRuta(null)).toEqual([]);
+    expect(leyendaRuta({})).toEqual([]);
   });
 });

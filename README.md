@@ -4,7 +4,7 @@ Mapa de lugares para buscar direcciones, comparar coincidencias, guardar puntos 
 
 El nombre de producto es **GeoHuella**. El repositorio conserva el nombre interno `piloto-mapa` en algunas claves de `localStorage` para no perder datos existentes.
 
-**Versión actual:** `0.2.0`. El historial de cambios está en [`CHANGELOG.md`](CHANGELOG.md). La versión se muestra en el panel y en `GET /api/salud/`.
+**Versión actual:** `0.2.1`. El historial de cambios está en [`CHANGELOG.md`](CHANGELOG.md). La versión se muestra en el panel y en `GET /api/salud/`.
 
 ## Funcionalidades
 
@@ -223,7 +223,7 @@ Comprobar el estado:
 curl http://localhost:8001/api/salud/
 ```
 
-Debe responder `{"estado":"ok","version":"0.2.0"}`.
+Debe responder `{"estado":"ok","version":"0.2.1"}`.
 
 Los errores de CORS que aparecen junto a `Connection refused` suelen ser consecuencia de que el backend está apagado, no un problema separado de configuración. El servicio persistente gestiona fallas del backend; si la consola muestra `Could not be loaded` para una imagen de MapLibre, es un aviso separado sobre el sprite del estilo cartográfico.
 

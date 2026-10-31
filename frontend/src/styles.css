@@ -1289,31 +1289,74 @@ button, input, select, textarea { font-family: inherit; }
 }
 
 .ruta-leyenda {
+  margin: 2px 0 10px;
+}
+
+.leyenda-tramos {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin: 2px 0 10px;
-  font-size: 9.7px;
-  font-weight: 500;
-  color: rgba(37, 22, 5, 0.68);
+  gap: 8px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.ruta-leyenda span {
+.leyenda-tramo {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  font-size: 9.7px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: rgba(37, 22, 5, 0.72);
 }
 
-.ruta-trazo {
+/* Muestra de trazo: el color llega por style desde TRAMOS_RUTA. */
+.trazo-muestra {
   display: inline-block;
-  width: 22px;
+  width: 24px;
   height: 0;
   border-top: 3px solid #f1ab86;
   border-radius: 99px;
 }
 
-.ruta-trazo--regreso {
-  border-top: 2px dashed #9cafb7;
+.trazo-muestra--discontinuo {
+  border-top-width: 2px;
+  border-top-style: dashed;
+}
+
+/* Leyenda flotante sobre el mapa: referencia de colores siempre a la vista.
+   Va arriba a la derecha (debajo del botón de colapsar) porque el panel ocupa
+   toda la altura de la izquierda. */
+.mapa-leyenda {
+  position: absolute;
+  top: 73px;
+  right: 18px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 13px;
+  pointer-events: none;
+  background: rgba(37, 22, 5, 0.84);
+  border: 1px solid rgba(247, 219, 167, 0.28);
+  border-radius: 13px;
+  box-shadow: 0 12px 28px rgba(10, 6, 2, 0.34);
+  backdrop-filter: blur(10px);
+}
+
+.mapa-leyenda-titulo {
+  font-family: 'Poppins', sans-serif;
+  font-size: 8.4px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: rgba(247, 219, 167, 0.74);
+}
+
+.mapa-leyenda .leyenda-tramo {
+  font-size: 10.4px;
+  color: rgba(255, 249, 238, 0.92);
 }
 
 .ruta-resumen-actions {
@@ -1668,6 +1711,14 @@ button, input, select, textarea { font-family: inherit; }
   }
 
   .map-toggle { top: 14px; right: 14px; }
+
+  /* En mobile el panel es una hoja inferior: la leyenda va arriba a la izquierda. */
+  .mapa-leyenda {
+    top: 14px;
+    left: 14px;
+    right: auto;
+    padding: 8px 11px;
+  }
 }
 
 @media (max-width: 420px) {
@@ -2088,4 +2139,103 @@ button, input, select, textarea { font-family: inherit; }
   background: linear-gradient(90deg, var(--cinnamon), var(--tangerine));
   border-radius: 999px;
   transition: width 0.25s ease;
+}
+
+/* ---------- Diálogos modales (alertas y confirmaciones) ---------- */
+
+.dialogo {
+  max-width: min(420px, calc(100vw - 32px));
+}
+
+.dialogo-caja {
+  color: var(--coffee);
+  background: var(--panel-gradient);
+  border: 1px solid rgba(197, 123, 87, 0.5);
+  border-radius: 22px;
+  box-shadow:
+    0 30px 70px rgba(10, 6, 2, 0.55),
+    0 2px 0 rgba(255, 255, 255, 0.55) inset;
+  overflow: hidden;
+  animation: dialogo-entrada 0.16s ease-out;
+}
+
+.dialogo-caja--peligro {
+  border-color: rgba(123, 53, 29, 0.42);
+}
+
+.dialogo-head {
+  padding: 22px 24px 4px;
+  border-bottom: 0;
+}
+
+.dialogo-titulo {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--coffee);
+}
+
+.dialogo-caja--peligro .dialogo-titulo {
+  color: #7b351d;
+}
+
+.dialogo-cuerpo {
+  padding: 6px 24px 4px;
+}
+
+.dialogo-mensaje {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(37, 22, 5, 0.86);
+}
+
+.dialogo-detalle {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: rgba(37, 22, 5, 0.6);
+}
+
+.dialogo-pie {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 16px 24px 22px;
+  border-top: 0;
+}
+
+.dialogo-pie .btn {
+  min-width: 96px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 11px;
+}
+
+/* Acción destructiva: sólida, dentro de los tonos ya usados por la app. */
+.dialogo-pie .btn-peligro {
+  color: var(--cream);
+  background: #7b351d;
+  border-color: #7b351d;
+}
+
+.dialogo-pie .btn-peligro:hover:not(:disabled) {
+  color: var(--cream);
+  background: #5e2512;
+  border-color: #5e2512;
+}
+
+/* El fondo oscurecido del modal, en el tono café de la app. */
+.modal-backdrop.show {
+  background: rgba(18, 10, 2, 0.62);
+  opacity: 1;
+}
+
+@keyframes dialogo-entrada {
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  to { opacity: 1; transform: none; }
 }

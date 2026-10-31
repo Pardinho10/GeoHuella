@@ -1,6 +1,6 @@
 # Resultado de la integración local — 2026-10-22
 
-> Nota: los puertos actuales son frontend `5174` y backend `8001`. Este informe conserva los valores usados en la verificación original (`5173`/`8000`). La verificación con Leaflet corresponde a la etapa previa a la migración; el estado MapLibre está documentado en `migracion-maplibre.md`. Las cifras de tests son las de esa fecha. El payload de `/api/salud/` se muestra con la versión vigente al cierre (0.2.0); la corrida original usó el build de entonces.
+> Nota: los puertos actuales son frontend `5174` y backend `8001`. Este informe conserva los valores usados en la verificación original (`5173`/`8000`). La verificación con Leaflet corresponde a la etapa previa a la migración; el estado MapLibre está documentado en `migracion-maplibre.md`. Las cifras de tests son las de esa fecha. El payload de `/api/salud/` se muestra con la versión vigente al cierre (0.2.1); la corrida original usó el build de entonces.
 
 ## Entorno
 
@@ -12,7 +12,7 @@
 
 ## Verificado
 
-- `GET /api/salud/`: 200 `{ "estado": "ok", "version": "0.2.0" }`.
+- `GET /api/salud/`: 200 `{ "estado": "ok", "version": "0.2.1" }`.
 - `GET /api/provincias/`: 200, 24 provincias; CORS responde con `Access-Control-Allow-Origin: http://localhost:5173`.
 - Preflight `OPTIONS` para POST JSON: 200 con métodos/cabeceras CORS esperados.
 - `POST /api/geocodificar/` para Avenida Corrientes 1000, CABA: 200 con candidato ubicado (`-34.603669473, -58.380975283`).

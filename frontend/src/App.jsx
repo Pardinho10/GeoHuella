@@ -4,7 +4,8 @@ import { agregarCandidatos, parsearCoordenada, parsearParPegado, enRangoArgentin
 import { obtenerProvincias, geocodificar, ubicarCoordenadas, calcularRuta, buscarLugaresCercanos } from './api';
 import IconHuella from './components/IconHuella.jsx';
 import Importador from './components/Importador.jsx';
-import { MAX_PUNTOS_RUTA, PERFILES_RUTA, etiquetaPerfil, formatearDistancia, formatearDuracion, analizarLimiteRuta, mensajeExcedenteRuta, mensajeMaximoRuta } from './lib/ruta.js';
+import { useDialogos } from './components/Dialogo.jsx';
+import { MAX_PUNTOS_RUTA, PERFILES_RUTA, etiquetaPerfil, formatearDistancia, formatearDuracion, analizarLimiteRuta, mensajeExcedenteRuta, mensajeMaximoRuta, leyendaRuta } from './lib/ruta.js';
 import { VERSION } from './version.js';
 
 const Mapa = React.lazy(() => import('./components/Mapa.jsx'));
@@ -24,6 +25,24 @@ function FieldError({ children }) {
   return <span className="field-error" role="alert">{children}</span>;
 }
 
+/** Referencia visual de los tramos de la ruta (ida/regreso). */
+function LeyendaRuta({ entradas }) {
+  return (
+    <ul className="leyenda-tramos">
+      {entradas.map((tramo) => (
+        <li key={tramo.id} className="leyenda-tramo">
+          <i
+            className={`trazo-muestra${tramo.guion ? ' trazo-muestra--discontinuo' : ''}`}
+            style={{ borderTopColor: tramo.color }}
+            aria-hidden="true"
+          />
+          <span>{tramo.etiqueta}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default function App() {
   const [elementos, setElementos] = useState(() => cargarElementos());
   const [contador, setContador] = useState(() => cargarContador());
@@ -35,6 +54,7 @@ export default function App() {
   const [panelAbierto, setPanelAbierto] = useState(true);
   const [tabActiva, setTabActiva] = useState('direccion');
   const [importando, setImportando] = useState(false);
+  const { alerta, confirmar, elemento: dialogo } = useDialogos();
 
   // Dirección
   const [nombreDir, setNombreDir] = useState('');
@@ -255,7 +275,11 @@ export default function App() {
     setElementos(nuevos);
     setContador(nuevoContador);
     if (noAgregados > 0) {
-      setError(`No hay espacio para todos: se agregaron ${agregados.length} de ${elegidos.length}. El límite es 200.`);
+      void alerta({
+        titulo: 'Límite de huellas alcanzado',
+        mensaje: `Se agregaron ${agregados.length} de ${elegidos.length}. El mapa admite hasta ${MAX_ELEMENTOS} huellas.`,
+        detalle: 'Quitá alguna huella del mapa para poder sumar las que quedaron afuera.',
+      });
     }
     if (agregados.length > 0) setFoco([agregados[0].lat, agregados[0].lng]);
     return agregados.length;
@@ -354,12 +378,28 @@ export default function App() {
     }
   }
 
-  function eliminar(id) {
-    setElementos((prev) => prev.filter((e) => e.id !== id));
+  async function eliminar(id) {
+    const elemento = elementos.find((e) => e.id === id);
+    const confirmado = await confirmar({
+      titulo: 'Quitar huella',
+      mensaje: `¿Quitar «${elemento?.nombre || 'esta huella'}» del mapa?`,
+      detalle: 'Esta acción no se puede deshacer.',
+      confirmar: 'Quitar',
+    });
+    if (confirmado) setElementos((prev) => prev.filter((e) => e.id !== id));
   }
 
-  function quitarTodos() {
-    if (window.confirm('¿Quitar todos los elementos?')) setElementos([]);
+  async function quitarTodos() {
+    if (elementos.length === 0) return;
+    const confirmado = await confirmar({
+      titulo: 'Quitar todas las huellas',
+      mensaje: elementos.length === 1
+        ? '¿Quitar la única huella del mapa?'
+        : `¿Quitar las ${elementos.length} huellas del mapa?`,
+      detalle: 'Esta acción no se puede deshacer.',
+      confirmar: 'Quitar todas',
+    });
+    if (confirmado) setElementos([]);
   }
 
   function seleccionarElemento(el) {
@@ -475,7 +515,11 @@ export default function App() {
     setContador(c);
 
     if (noAgregados > 0) {
-      setError(`No hay espacio para todos: se agregaron ${agregados}. El límite es ${MAX_ELEMENTOS} huellas.`);
+      void alerta({
+        titulo: 'Límite de huellas alcanzado',
+        mensaje: `Se agregaron ${agregados} huellas. El mapa admite hasta ${MAX_ELEMENTOS}.`,
+        detalle: 'Quitá alguna huella del mapa para poder sumar las que quedaron afuera.',
+      });
     }
     if (primero) setFoco([primero.lat, primero.lng]);
 
@@ -616,6 +660,7 @@ export default function App() {
   const elegidosRuta = elementos.filter((el) => seleccionRuta.has(el.id));
   const nombreInicio = ruta ? elementos.find((el) => el.id === ruta.inicioId)?.nombre : null;
   const nombreFin = ruta ? elementos.find((el) => el.id === ruta.finId)?.nombre : null;
+  const entradasLeyenda = leyendaRuta(ruta);
   const puntoAlrededor = elementos.find((el) => el.id === alrededorId) || null;
   const consultaFiltro = normalizarTexto(filtroElementos);
   const filtroActivo = consultaFiltro.length > 0;
@@ -659,6 +704,13 @@ export default function App() {
       </Suspense>
 
       <div className="map-vignette" aria-hidden="true" />
+
+      {entradasLeyenda.length > 0 && (
+        <aside className="mapa-leyenda" aria-label="Referencia de colores de la ruta">
+          <span className="mapa-leyenda-titulo">Ruta</span>
+          <LeyendaRuta entradas={entradasLeyenda} />
+        </aside>
+      )}
 
       {!panelAbierto && (
         <button
@@ -1239,10 +1291,9 @@ export default function App() {
                     {ruta.optimizar ? ' · orden optimizado' : ''}
                     {ruta.volverInicio ? ' · ida y vuelta' : ''}
                   </p>
-                  {ruta.volverInicio && (
-                    <div className="ruta-leyenda" aria-label="Tramos de la ruta">
-                      <span><i className="ruta-trazo ruta-trazo--ida" aria-hidden="true" />Ida</span>
-                      <span><i className="ruta-trazo ruta-trazo--regreso" aria-hidden="true" />Regreso</span>
+                  {entradasLeyenda.length > 0 && (
+                    <div className="ruta-leyenda" aria-label="Referencia de colores de la ruta">
+                      <LeyendaRuta entradas={entradasLeyenda} />
                     </div>
                   )}
                   <div className="ruta-resumen-actions">
@@ -1404,6 +1455,8 @@ export default function App() {
           )}
         </aside>
       )}
+
+      {dialogo}
     </div>
   );
 }

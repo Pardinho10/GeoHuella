@@ -3,6 +3,13 @@
 Todas las versiones relevantes de GeoHuella se documentan en este archivo.
 El formato sigue [Versionado Semántico](https://semver.org/lang/es/).
 
+## [0.2.1] - 2026-10-30
+
+### Mejorado
+
+- Ida y regreso de rutas distinguidos en el mapa con estilos desplazados para evitar que se solapen al volver por la misma calle; leyenda consistente en el mapa y el resumen.
+- Alertas y confirmaciones propias de GeoHuella reemplazan los diálogos nativos del navegador para eliminar huellas, quitar todas y avisar del límite de 200.
+
 ## [0.2.0] - 2026-10-30
 
 ### Agregado

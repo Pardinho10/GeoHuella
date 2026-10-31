@@ -7,7 +7,7 @@ Fuente de verdad compartida entre backend y frontend. Base `/api/`. JSON UTF-8. 
 `200 OK`
 
 ```json
-{ "estado": "ok", "version": "0.2.0" }
+{ "estado": "ok", "version": "0.2.1" }
 ```
 
 ## 2. Provincias — `GET /api/provincias/`
@@ -95,7 +95,7 @@ Si la respuesta de Georef es válida, pero no queda ningún resultado con coorde
 
 `error.sugerencias` es opcional; cuando existe contiene hasta 5 ubicaciones alternativas numeradas sobre la misma calle y en la misma ciudad/provincia, próximas a la altura solicitada. Nunca se agregan automáticamente. Si no se encuentran coincidencias cercanas fiables, se conserva el error `no_encontrada` sin sugerencias. Las sugerencias provistas por Nominatim o HERE pueden ser aproximadas y deben ser elegidas explícitamente por la persona. Las alturas `interpolated` de HERE se presentan como aproximadas, nunca como coincidencia exacta.
 
-## 4. Geocodificación en lote — `POST /api/geocodificar-lote/` (v0.2.0)
+## 4. Geocodificación en lote — `POST /api/geocodificar-lote/` (v0.2.1)
 
 Procesa secuencialmente un lote pequeño de direcciones y devuelve un resultado por cada `id`, preservando el orden de entrada. Reutiliza la lógica de `/api/geocodificar/` y no agrega puntos automáticamente. El frontend limita la importación a 100 filas y las divide en solicitudes secuenciales de 10 (variables `IMPORT_MAX_FILAS` y `GEOCODIFICAR_LOTE_MAX`). En este piloto el tamaño efectivo de lote frontend/backend debe permanecer sincronizado en 10; si se cambia, hay que cambiar el tamaño de bloque frontend en el mismo release.
 

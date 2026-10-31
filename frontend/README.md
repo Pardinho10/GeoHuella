@@ -1,6 +1,6 @@
 # Frontend — GeoHuella
 
-Versión actual: `0.2.0`, leída desde `../VERSION` y expuesta en el panel como `v0.2.0`.
+Versión actual: `0.2.1`, leída desde `../VERSION` y expuesta en el panel como `v0.2.1`.
 
 SPA en React + Vite (JavaScript), Bootstrap 5 y MapLibre GL JS con tiles vectoriales de OpenFreeMap. Interfaz en español, con panel cálido editorial sobre mapa oscuro, tipografía Poppins y la paleta `#251605`, `#c57b57`, `#f1ab86`, `#f7dba7`, `#9cafb7`.
 
@@ -38,7 +38,7 @@ npm run build
 - Tooltip nativo al pasar el cursor y popup al hacer clic, con nombre, dirección y coordenadas a 6 decimales. El mapa vectorial permite zoom hasta 20; OpenFreeMap publica datos hasta zoom 14 y MapLibre los amplía sin devolver tiles de error.
 - Panel colapsable; en móvil se convierte en hoja inferior y los controles de zoom se reubican por encima.
 - Cada huella se puede editar, subir o bajar dentro de la lista y filtrar por nombre o dirección. El orden de la lista se usa como orden base para las rutas sin optimización.
-- Importación masiva v0.2.0: pegar direcciones línea por línea o cargar CSV, mapear/editar columnas, revisar resultados, reintentar filas, detectar duplicados y confirmar qué huellas agregar. Límite de 100 filas; geocodificación secuencial en bloques de hasta 10 con progreso y cancelación entre bloques; estados por fila (pendiente, buscando, encontrada, ambigua, sin resultado, error, cancelada); los candidatos aproximados nunca quedan preseleccionados y requieren elección explícita. Excel queda fuera de esta versión.
+- Importación masiva v0.2.1: pegar direcciones línea por línea o cargar CSV, mapear/editar columnas, revisar resultados, reintentar filas, detectar duplicados y confirmar qué huellas agregar. Límite de 100 filas; geocodificación secuencial en bloques de hasta 10 con progreso y cancelación entre bloques; estados por fila (pendiente, buscando, encontrada, ambigua, sin resultado, error, cancelada); los candidatos aproximados nunca quedan preseleccionados y requieren elección explícita. Excel queda fuera de esta versión.
 
 Las sugerencias cercanas dependen de que `POST /api/geocodificar/` devuelva `error.sugerencias` en una respuesta 404. El cliente normaliza esa respuesta para no perder las alternativas. El backend puede completarlas con resultados de Nominatim o de HERE; las alturas interpoladas por HERE se presentan como aproximadas y nunca se agregan automáticamente. En la importación masiva, el indicador de una coincidencia aproximada es la etiqueta “Aproximada”, y cancelar solo evita iniciar nuevos bloques: el backend puede terminar el bloque en curso.
 

@@ -66,7 +66,7 @@ describe('App rutas', () => {
 
   it('muestra la versión de la aplicación', () => {
     render(<App />);
-    expect(screen.getByText('v0.2.0')).toBeInTheDocument();
+    expect(screen.getByText('v0.2.1')).toBeInTheDocument();
   });
 
   it('permite editar el nombre de una huella', async () => {
@@ -283,6 +283,52 @@ describe('App rutas', () => {
 
     await waitFor(() => expect(calcularRuta).toHaveBeenCalledWith(expect.objectContaining({ volver_al_inicio: true })));
     expect(await screen.findByText(/ida y vuelta/)).toBeInTheDocument();
-    expect(screen.getByText('Regreso')).toBeInTheDocument();
+    // La referencia aparece en el panel y sobre el mapa.
+    expect(screen.getAllByText('Regreso').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Ida').length).toBeGreaterThan(0);
+  });
+
+  it('muestra la referencia de colores de ida y regreso en el panel y sobre el mapa', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText('Casa')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Armar ruta entre huellas' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Volver al inicio' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Incluir Casa en la ruta' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Incluir Trabajo en la ruta' }));
+    await user.click(screen.getByRole('button', { name: 'Trazar ruta' }));
+
+    const leyendas = await screen.findAllByLabelText('Referencia de colores de la ruta');
+    expect(leyendas).toHaveLength(2); // panel + mapa
+
+    const mapa = leyendas.find((el) => el.classList.contains('mapa-leyenda'));
+    expect(mapa).toBeTruthy();
+    const chips = mapa.querySelectorAll('.trazo-muestra');
+    expect(chips).toHaveLength(2);
+
+    const color = (chip) => (chip.style.borderTopColor || '').toLowerCase().replace(/\s/g, '');
+    expect(color(chips[0])).toBe('rgb(241,171,134)');
+    expect(color(chips[1])).toBe('rgb(156,175,183)');
+    expect(chips[1].className).toContain('trazo-muestra--discontinuo');
+
+    expect(mapa).toHaveTextContent('Ida');
+    expect(mapa).toHaveTextContent('Regreso');
+  });
+
+  it('sin ida y vuelta la referencia muestra un único recorrido', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText('Casa')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Armar ruta entre huellas' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Incluir Casa en la ruta' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Incluir Trabajo en la ruta' }));
+    await user.click(screen.getByRole('button', { name: 'Trazar ruta' }));
+
+    const leyendas = await screen.findAllByLabelText('Referencia de colores de la ruta');
+    expect(leyendas).toHaveLength(2);
+    expect(screen.getAllByText('Recorrido')).toHaveLength(2);
+    expect(screen.queryByText('Regreso')).not.toBeInTheDocument();
   });
 });

@@ -169,3 +169,70 @@ export function tramosDeRuta(ruta) {
     regreso: coleccionLinea(coordenadas.slice(corte)),
   };
 }
+
+/**
+ * Estilo visual de los tramos de ruta: fuente única de verdad.
+ *
+ * Lo consumen el mapa (`Mapa.jsx`) y la leyenda (`App.jsx`), así los colores
+ * del trazo y de la referencia nunca se desincronizan.
+ *
+ * Ida y regreso se distinguen por cuatro señales a la vez:
+ *  - color (tangerina cálida vs. acero frío, ambos de la paleta),
+ *  - grosor (la ida es más gruesa),
+ *  - trama (ida continua, regreso discontinuo),
+ *  - desplazamiento lateral: cuando el regreso vuelve por la misma calle las
+ *    dos líneas quedan una al lado de la otra en vez de taparse.
+ * Las señales no dependen solo del color, así también se distingue en daltonismo.
+ *
+ * Ojo con el signo del desplazamiento: `line-offset` es relativo al sentido de
+ * avance de la geometría y la del regreso está invertida, por eso el valor
+ * negativo la manda al lado opuesto de la ida. La ida queda centrada para no
+ * correr el trazo de la calle real.
+ */
+export const TRAMOS_RUTA = {
+  ida: {
+    id: 'ida',
+    etiqueta: 'Ida',
+    color: '#f1ab86', // --tangerine
+    colorBorde: '#251605', // --coffee
+    ancho: 4.6,
+    anchoBorde: 9.4,
+    desplazamiento: 0,
+    guion: null,
+  },
+  regreso: {
+    id: 'regreso',
+    etiqueta: 'Regreso',
+    color: '#9cafb7', // --steel
+    colorBorde: '#251605', // --coffee
+    ancho: 3.4,
+    anchoBorde: 7.6,
+    desplazamiento: -4.5,
+    guion: [2.2, 1.5],
+  },
+};
+
+/** Pintura de una capa MapLibre para el tramo (borde = halo oscuro). */
+export function pinturaTramo(tramo, { borde = false } = {}) {
+  const paint = {
+    'line-color': borde ? tramo.colorBorde : tramo.color,
+    'line-width': borde ? tramo.anchoBorde : tramo.ancho,
+    'line-opacity': borde ? 0.72 : 1,
+    'line-offset': tramo.desplazamiento,
+  };
+  // El halo se dibuja continuo: el guion solo marca el trazo visible.
+  if (!borde && Array.isArray(tramo.guion)) paint['line-dasharray'] = tramo.guion;
+  return paint;
+}
+
+/**
+ * Entradas de la leyenda para la ruta activa.
+ *
+ * Sigue la elección del usuario (`volverInicio`): si pidió ida y vuelta la
+ * referencia muestra los dos tramos; si no, un único recorrido.
+ */
+export function leyendaRuta(ruta) {
+  if (!ruta?.ruta) return [];
+  if (!ruta.volverInicio) return [{ ...TRAMOS_RUTA.ida, etiqueta: 'Recorrido' }];
+  return [{ ...TRAMOS_RUTA.ida }, { ...TRAMOS_RUTA.regreso }];
+}

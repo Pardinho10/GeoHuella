@@ -1,6 +1,6 @@
 # Backend — GeoHuella
 
-Versión actual: `0.2.0`, leída desde `../VERSION`.
+Versión actual: `0.2.1`, leída desde `../VERSION`.
 
 API Django + Django REST Framework que actúa como proxy/cache de la API pública de Georef y usa Nominatim (OpenStreetMap) y, opcionalmente, HERE Geocoding & Search como respaldos cuando faltan coordenadas.
 
@@ -46,7 +46,7 @@ Endpoints base `/api/`:
 - HERE es opcional y se activa con `HERE_ENABLED=true` y `HERE_API_KEY`. Los resultados `PA`/`MPA` se devuelven como candidatos; los `interpolated` se devuelven como sugerencias aproximadas. Ante HTTP 429 se reintenta de forma acotada (`HERE_MAX_RETRIES`, `HERE_RETRY_DELAY`).
 - Los lugares cercanos usan HERE Browse y se activan por separado con `HERE_PLACES_ENABLED=true`. La respuesta se cachea `HERE_PLACES_CACHE_TTL` segundos y no se persiste.
 
-## Lote de importación y criterio de exactitud (v0.2.0)
+## Lote de importación y criterio de exactitud (v0.2.1)
 
 - `POST /api/geocodificar-lote/` reutiliza `resolver_direccion`, la caché y el lock global de Nominatim del endpoint individual; procesa las filas de forma secuencial y nunca en paralelo.
 - Una fila inválida rechaza el lote completo con 400 antes de consultar proveedores; los errores se informan en `error.campos` como `filas[<índice>].<campo>`. Si no se puede obtener la lista oficial de provincias, responde 502 `servicio_no_disponible`.

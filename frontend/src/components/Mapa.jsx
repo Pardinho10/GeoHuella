@@ -6,7 +6,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { colorSeguro } from '../lib/storage.js';
 import { offsetsPorCoordenada } from '../lib/marcadores.js';
 import { ajustarVista } from '../lib/vista.js';
-import { boundsDeRuta, formatearDistancia, tramosDeRuta } from '../lib/ruta.js';
+import { boundsDeRuta, formatearDistancia, pinturaTramo, tramosDeRuta, TRAMOS_RUTA } from '../lib/ruta.js';
 import IconHuella from './IconHuella.jsx';
 
 setWorkerUrl(workerUrl);
@@ -183,24 +183,19 @@ export default function Mapa({
       <ControlLugares origen={origenLugares} lugares={lugares} />
       <ControlRuta ruta={ruta} fitRuta={fitRuta} />
 
-      {ruta?.ruta && (
-        <Source id="ruta-geojson" type="geojson" data={ruta.ruta}>
-          <Layer
-            id="ruta-casing"
-            type="line"
-            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{ 'line-color': '#251605', 'line-width': 8, 'line-opacity': 0.62 }}
-          />
-        </Source>
-      )}
-
       {tramos.ida && (
         <Source id="ruta-ida-geojson" type="geojson" data={tramos.ida}>
+          <Layer
+            id="ruta-ida-borde"
+            type="line"
+            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+            paint={pinturaTramo(TRAMOS_RUTA.ida, { borde: true })}
+          />
           <Layer
             id="ruta-ida"
             type="line"
             layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{ 'line-color': '#f1ab86', 'line-width': 4, 'line-opacity': 1 }}
+            paint={pinturaTramo(TRAMOS_RUTA.ida)}
           />
         </Source>
       )}
@@ -208,15 +203,16 @@ export default function Mapa({
       {tramos.regreso && (
         <Source id="ruta-regreso-geojson" type="geojson" data={tramos.regreso}>
           <Layer
+            id="ruta-regreso-borde"
+            type="line"
+            layout={{ 'line-cap': 'butt', 'line-join': 'round' }}
+            paint={pinturaTramo(TRAMOS_RUTA.regreso, { borde: true })}
+          />
+          <Layer
             id="ruta-regreso"
             type="line"
-            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{
-              'line-color': '#9cafb7',
-              'line-width': 3,
-              'line-opacity': 1,
-              'line-dasharray': [1.8, 1.6],
-            }}
+            layout={{ 'line-cap': 'butt', 'line-join': 'round' }}
+            paint={pinturaTramo(TRAMOS_RUTA.regreso)}
           />
         </Source>
       )}

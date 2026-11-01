@@ -8,6 +8,11 @@
   --ink-soft: rgba(37, 22, 5, 0.68);
   --line: rgba(37, 22, 5, 0.13);
   --panel-gradient: linear-gradient(168deg, rgba(255, 250, 239, 0.98) 0%, rgba(247, 219, 167, 0.97) 62%, rgba(241, 171, 134, 0.92) 100%);
+  /* Radio único para toda la interfaz (pedido: 0.5 = 0.5rem). */
+  --radio: 0.5rem;
+  /* Vidrio esmerilado: el mapa se insinúa detrás de la superficie. */
+  --panel-glass: linear-gradient(168deg, rgba(255, 250, 239, 0.88) 0%, rgba(247, 219, 167, 0.82) 58%, rgba(241, 171, 134, 0.76) 100%);
+  --dialogo-glass: linear-gradient(168deg, rgba(255, 250, 239, 0.9) 0%, rgba(247, 219, 167, 0.86) 62%, rgba(241, 171, 134, 0.8) 100%);
 }
 
 * { box-sizing: border-box; }
@@ -77,13 +82,15 @@ button, input, select, textarea { font-family: inherit; }
   z-index: 1000;
   overflow: hidden;
   color: var(--coffee);
-  background: var(--panel-gradient);
-  border: 1px solid rgba(197, 123, 87, 0.45);
-  border-radius: 24px;
+  background: var(--panel-glass);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: var(--radio);
   box-shadow:
-    0 30px 70px rgba(10, 6, 2, 0.5),
-    0 2px 0 rgba(255, 255, 255, 0.55) inset;
-  backdrop-filter: blur(18px) saturate(1.1);
+    0 30px 70px rgba(10, 6, 2, 0.42),
+    0 1px 0 rgba(255, 255, 255, 0.62) inset,
+    0 0 0 1px rgba(37, 22, 5, 0.06) inset;
+  -webkit-backdrop-filter: blur(26px) saturate(150%);
+  backdrop-filter: blur(26px) saturate(150%);
 }
 
 .panel-header {
@@ -116,7 +123,7 @@ button, input, select, textarea { font-family: inherit; }
   color: var(--peach);
   background: linear-gradient(145deg, #3a2410, var(--coffee));
   border: 1px solid rgba(247, 219, 167, 0.28);
-  border-radius: 13px;
+  border-radius: var(--radio);
   box-shadow: 0 7px 16px rgba(37, 22, 5, 0.24);
 }
 
@@ -151,7 +158,7 @@ button, input, select, textarea { font-family: inherit; }
   color: rgba(37, 22, 5, 0.62);
   background: rgba(37, 22, 5, 0.07);
   border: 1px solid rgba(37, 22, 5, 0.12);
-  border-radius: 999px;
+  border-radius: var(--radio);
 }
 
 .icon-button {
@@ -163,7 +170,7 @@ button, input, select, textarea { font-family: inherit; }
   color: var(--coffee);
   background: rgba(37, 22, 5, 0.06);
   border: 1px solid rgba(37, 22, 5, 0.12);
-  border-radius: 10px;
+  border-radius: var(--radio);
   cursor: pointer;
   transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
@@ -209,7 +216,7 @@ button, input, select, textarea { font-family: inherit; }
   color: rgba(37, 22, 5, 0.72);
   background: rgba(255, 252, 244, 0.52);
   border: 1px solid rgba(37, 22, 5, 0.1);
-  border-radius: 999px;
+  border-radius: var(--radio);
 }
 
 .stat b {
@@ -230,7 +237,7 @@ button, input, select, textarea { font-family: inherit; }
 .panel-scroll::-webkit-scrollbar { width: 6px; }
 .panel-scroll::-webkit-scrollbar-thumb {
   background: rgba(197, 123, 87, 0.45);
-  border-radius: 99px;
+  border-radius: var(--radio);
 }
 
 /* ---------- Tabs ---------- */
@@ -242,7 +249,7 @@ button, input, select, textarea { font-family: inherit; }
   padding: 4px;
   background: rgba(37, 22, 5, 0.075);
   border: 1px solid rgba(37, 22, 5, 0.07);
-  border-radius: 14px;
+  border-radius: var(--radio);
 }
 
 .segmented button {
@@ -253,7 +260,7 @@ button, input, select, textarea { font-family: inherit; }
   color: rgba(37, 22, 5, 0.68);
   background: transparent;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radio);
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -310,7 +317,7 @@ button, input, select, textarea { font-family: inherit; }
   color: var(--coffee);
   background: rgba(255, 252, 244, 0.82);
   border: 1px solid rgba(37, 22, 5, 0.16);
-  border-radius: 11px;
+  border-radius: var(--radio);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
@@ -377,7 +384,7 @@ button, input, select, textarea { font-family: inherit; }
   font-weight: 600;
   letter-spacing: 0.01em;
   line-height: 1.2;
-  border-radius: 11px;
+  border-radius: var(--radio);
   border: 1px solid transparent;
   cursor: pointer;
   transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease, color 0.16s ease;
@@ -474,7 +481,7 @@ button, input, select, textarea { font-family: inherit; }
 .btn-sm {
   padding: 5px 9px;
   font-size: 10.4px;
-  border-radius: 9px;
+  border-radius: var(--radio);
 }
 
 .w-100 { width: 100%; }
@@ -492,7 +499,7 @@ button, input, select, textarea { font-family: inherit; }
   height: 11px;
   border: 2px solid rgba(247, 219, 167, 0.35);
   border-top-color: var(--peach);
-  border-radius: 50%;
+  border-radius: var(--radio);
   animation: spin 0.7s linear infinite;
 }
 
@@ -509,7 +516,7 @@ button, input, select, textarea { font-family: inherit; }
   font-size: 11.3px;
   line-height: 1.5;
   border: 1px solid transparent;
-  border-radius: 11px;
+  border-radius: var(--radio);
 }
 
 .notice > span { flex: 1; }
@@ -538,7 +545,7 @@ button, input, select, textarea { font-family: inherit; }
   color: currentColor;
   background: transparent;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radio);
   cursor: pointer;
   opacity: 0.65;
 }
@@ -581,7 +588,7 @@ button, input, select, textarea { font-family: inherit; }
   text-align: center;
   color: var(--peach);
   background: var(--coffee);
-  border-radius: 999px;
+  border-radius: var(--radio);
 }
 
 .count-chip--warm {
@@ -610,7 +617,7 @@ button, input, select, textarea { font-family: inherit; }
   padding: 10px 11px;
   background: rgba(255, 252, 244, 0.56);
   border: 1px solid rgba(37, 22, 5, 0.12);
-  border-radius: 12px;
+  border-radius: var(--radio);
   cursor: pointer;
   transition: transform 0.17s ease, border-color 0.17s ease, background 0.17s ease, box-shadow 0.17s ease;
 }
@@ -672,7 +679,7 @@ button, input, select, textarea { font-family: inherit; }
   color: #70301b;
   background: rgba(37, 22, 5, 0.07);
   border: 1px solid rgba(37, 22, 5, 0.1);
-  border-radius: 999px;
+  border-radius: var(--radio);
 }
 
 /* ---------- Saved elements ---------- */
@@ -703,7 +710,7 @@ button, input, select, textarea { font-family: inherit; }
   color: #6c3c2a;
   background: rgba(255, 252, 244, 0.6);
   border: 1px solid rgba(197, 123, 87, 0.3);
-  border-radius: 8px;
+  border-radius: var(--radio);
   cursor: pointer;
 }
 
@@ -735,7 +742,7 @@ button, input, select, textarea { font-family: inherit; }
   padding: 4px 5px 4px 8px;
   background: rgba(255, 252, 244, 0.5);
   border: 1px solid rgba(37, 22, 5, 0.11);
-  border-radius: 12px;
+  border-radius: var(--radio);
   transition: background 0.16s ease, border-color 0.16s ease;
 }
 
@@ -752,7 +759,7 @@ button, input, select, textarea { font-family: inherit; }
   color: var(--coffee);
   background: transparent;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radio);
   cursor: pointer;
 }
 
@@ -767,7 +774,7 @@ button, input, select, textarea { font-family: inherit; }
   width: 8px;
   height: 8px;
   flex: none;
-  border-radius: 50%;
+  border-radius: var(--radio);
   box-shadow: 0 0 7px currentColor;
 }
 
@@ -797,7 +804,7 @@ button, input, select, textarea { font-family: inherit; }
   color: rgba(37, 22, 5, 0.48);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radio);
   cursor: pointer;
   transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
 }
@@ -826,7 +833,7 @@ button, input, select, textarea { font-family: inherit; }
   color: rgba(37, 22, 5, 0.52);
   background: transparent;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--radio);
   cursor: pointer;
 }
 
@@ -878,7 +885,7 @@ button, input, select, textarea { font-family: inherit; }
 .btn-xs {
   padding: 4px 7px;
   font-size: 9.5px;
-  border-radius: 7px;
+  border-radius: var(--radio);
 }
 
 .icon-delete {
@@ -889,7 +896,7 @@ button, input, select, textarea { font-family: inherit; }
   color: rgba(37, 22, 5, 0.48);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: var(--radio);
   cursor: pointer;
   transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
 }
@@ -907,7 +914,7 @@ button, input, select, textarea { font-family: inherit; }
   padding: 12px;
   background: rgba(255, 252, 244, 0.68);
   border: 1px solid rgba(156, 175, 183, 0.5);
-  border-radius: 14px;
+  border-radius: var(--radio);
   box-shadow: 0 8px 18px rgba(37, 22, 5, 0.06);
 }
 
@@ -947,7 +954,7 @@ button, input, select, textarea { font-family: inherit; }
   color: var(--coffee);
   background: rgba(255, 252, 244, 0.62);
   border: 1px solid rgba(37, 22, 5, 0.1);
-  border-radius: 9px;
+  border-radius: var(--radio);
   cursor: pointer;
   transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
 }
@@ -986,7 +993,7 @@ button, input, select, textarea { font-family: inherit; }
   font-weight: 700;
   color: #fff9ed;
   background: #6c3c2a;
-  border-radius: 50%;
+  border-radius: var(--radio);
 }
 
 .alrededor-item.is-active .alrededor-index {
@@ -1044,7 +1051,7 @@ button, input, select, textarea { font-family: inherit; }
   color: rgba(37, 22, 5, 0.68);
   background: rgba(156, 175, 183, 0.12);
   border: 1px solid rgba(37, 22, 5, 0.1);
-  border-radius: 8px;
+  border-radius: var(--radio);
   cursor: pointer;
   transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
 }
@@ -1065,7 +1072,7 @@ button, input, select, textarea { font-family: inherit; }
   padding: 12px;
   background: rgba(255, 252, 244, 0.68);
   border: 1px solid rgba(197, 123, 87, 0.36);
-  border-radius: 14px;
+  border-radius: var(--radio);
   box-shadow: 0 8px 18px rgba(37, 22, 5, 0.06);
 }
 
@@ -1101,7 +1108,7 @@ button, input, select, textarea { font-family: inherit; }
   padding: 3px;
   background: rgba(37, 22, 5, 0.075);
   border: 1px solid rgba(37, 22, 5, 0.07);
-  border-radius: 11px;
+  border-radius: var(--radio);
 }
 
 .ruta-perfiles button {
@@ -1111,7 +1118,7 @@ button, input, select, textarea { font-family: inherit; }
   color: rgba(37, 22, 5, 0.68);
   background: transparent;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radio);
   cursor: pointer;
   transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
 }
@@ -1170,7 +1177,7 @@ button, input, select, textarea { font-family: inherit; }
   color: var(--coffee);
   background: rgba(255, 252, 244, 0.88);
   border: 1px solid rgba(37, 22, 5, 0.18);
-  border-radius: 8px;
+  border-radius: var(--radio);
 }
 
 .ruta-selector select:focus-visible {
@@ -1208,7 +1215,7 @@ button, input, select, textarea { font-family: inherit; }
   color: #7d2c17;
   background: rgba(197, 123, 87, 0.13);
   border: 1px solid rgba(197, 123, 87, 0.26);
-  border-radius: 8px;
+  border-radius: var(--radio);
 }
 
 /* Avisos contextuales del límite de 20 huellas por ruta */
@@ -1217,7 +1224,7 @@ button, input, select, textarea { font-family: inherit; }
   padding: 7px 9px;
   font-size: 10.2px;
   line-height: 1.45;
-  border-radius: 8px;
+  border-radius: var(--radio);
 }
 
 .ruta-aviso--info {
@@ -1251,7 +1258,7 @@ button, input, select, textarea { font-family: inherit; }
   padding: 12px;
   background: linear-gradient(135deg, rgba(197, 123, 87, 0.2), rgba(247, 219, 167, 0.34));
   border: 1px solid rgba(197, 123, 87, 0.34);
-  border-radius: 14px;
+  border-radius: var(--radio);
   box-shadow: 0 8px 18px rgba(37, 22, 5, 0.06);
 }
 
@@ -1317,7 +1324,7 @@ button, input, select, textarea { font-family: inherit; }
   width: 24px;
   height: 0;
   border-top: 3px solid #f1ab86;
-  border-radius: 99px;
+  border-radius: var(--radio);
 }
 
 .trazo-muestra--discontinuo {
@@ -1340,7 +1347,7 @@ button, input, select, textarea { font-family: inherit; }
   pointer-events: none;
   background: rgba(37, 22, 5, 0.84);
   border: 1px solid rgba(247, 219, 167, 0.28);
-  border-radius: 13px;
+  border-radius: var(--radio);
   box-shadow: 0 12px 28px rgba(10, 6, 2, 0.34);
   backdrop-filter: blur(10px);
 }
@@ -1383,7 +1390,7 @@ button, input, select, textarea { font-family: inherit; }
   text-align: center;
   background: rgba(255, 252, 244, 0.3);
   border: 1px dashed rgba(37, 22, 5, 0.2);
-  border-radius: 13px;
+  border-radius: var(--radio);
 }
 
 .empty-icon {
@@ -1395,7 +1402,7 @@ button, input, select, textarea { font-family: inherit; }
   color: var(--cinnamon);
   background: rgba(255, 252, 244, 0.7);
   border: 1px solid rgba(197, 123, 87, 0.3);
-  border-radius: 50%;
+  border-radius: var(--radio);
 }
 
 .empty-state p {
@@ -1422,7 +1429,7 @@ button, input, select, textarea { font-family: inherit; }
   color: #fff9ed;
   background: var(--pin);
   border: 2px solid #fff9ed;
-  border-radius: 50%;
+  border-radius: var(--radio);
   box-shadow:
     0 0 0 3px rgba(37, 22, 5, 0.36),
     0 3px 9px rgba(37, 22, 5, 0.38);
@@ -1482,7 +1489,7 @@ button, input, select, textarea { font-family: inherit; }
   cursor: pointer;
   background: #f1ab86;
   border: 2px solid #fff9ed;
-  border-radius: 50%;
+  border-radius: var(--radio);
   box-shadow:
     0 0 0 3px rgba(37, 22, 5, 0.34),
     0 3px 9px rgba(37, 22, 5, 0.34);
@@ -1516,7 +1523,7 @@ button, input, select, textarea { font-family: inherit; }
   pointer-events: none;
   background: rgba(37, 22, 5, 0.9);
   border: 1px solid rgba(241, 171, 134, 0.55);
-  border-radius: 6px;
+  border-radius: var(--radio);
   opacity: 0;
   transform: translateY(-50%) translateX(-2px);
   transition: opacity 0.14s ease, transform 0.14s ease;
@@ -1549,7 +1556,7 @@ button, input, select, textarea { font-family: inherit; }
   color: var(--peach);
   background: rgba(37, 22, 5, 0.86);
   border: 1px solid rgba(247, 219, 167, 0.32);
-  border-radius: 13px;
+  border-radius: var(--radio);
   box-shadow: 0 10px 26px rgba(10, 6, 2, 0.32);
   backdrop-filter: blur(10px);
   cursor: pointer;
@@ -1566,7 +1573,7 @@ button, input, select, textarea { font-family: inherit; }
   overflow: hidden;
   background: rgba(255, 249, 238, 0.95) !important;
   border: 0 !important;
-  border-radius: 11px !important;
+  border-radius: var(--radio) !important;
   box-shadow: 0 8px 20px rgba(10, 6, 2, 0.28) !important;
 }
 
@@ -1595,7 +1602,7 @@ button, input, select, textarea { font-family: inherit; }
   font-size: 9.5px !important;
   color: rgba(247, 219, 167, 0.78) !important;
   background: rgba(37, 22, 5, 0.8) !important;
-  border-radius: 8px 0 0 0;
+  border-radius: var(--radio) 0 0 0;
 }
 
 .maplibregl-ctrl-attrib a { color: var(--peach) !important; }
@@ -1654,7 +1661,7 @@ button, input, select, textarea { font-family: inherit; }
   color: var(--coffee);
   background: var(--cream);
   border: 1px solid rgba(197, 123, 87, 0.4);
-  border-radius: 15px;
+  border-radius: var(--radio);
   box-shadow: 0 20px 50px rgba(10, 6, 2, 0.34);
 }
 
@@ -1687,7 +1694,7 @@ button, input, select, textarea { font-family: inherit; }
     border-right: 0;
     border-bottom: 0;
     border-left: 0;
-    border-radius: 24px 24px 0 0;
+    border-radius: var(--radio) var(--radio) 0 0;
   }
 
   .panel-header { padding: 19px 18px 13px; }
@@ -1700,7 +1707,7 @@ button, input, select, textarea { font-family: inherit; }
     width: 34px;
     height: 4px;
     background: rgba(37, 22, 5, 0.18);
-    border-radius: 999px;
+    border-radius: var(--radio);
     transform: translateX(-50%);
   }
 
@@ -1759,7 +1766,7 @@ button, input, select, textarea { font-family: inherit; }
   min-height: 0;
   color: var(--coffee);
   background: linear-gradient(170deg, rgba(255, 250, 239, 0.995) 0%, rgba(247, 219, 167, 0.99) 70%, rgba(241, 171, 134, 0.97) 100%);
-  border-radius: 23px;
+  border-radius: var(--radio);
 }
 
 .importador-head {
@@ -1790,7 +1797,7 @@ button, input, select, textarea { font-family: inherit; }
 .importador-cuerpo::-webkit-scrollbar { width: 6px; }
 .importador-cuerpo::-webkit-scrollbar-thumb {
   background: rgba(37, 22, 5, 0.2);
-  border-radius: 999px;
+  border-radius: var(--radio);
 }
 
 .importador-textarea {
@@ -1816,7 +1823,7 @@ button, input, select, textarea { font-family: inherit; }
   padding: 0 3px;
   font-size: 10px;
   background: rgba(37, 22, 5, 0.07);
-  border-radius: 4px;
+  border-radius: var(--radio);
 }
 
 .importador-contador {
@@ -1847,7 +1854,7 @@ button, input, select, textarea { font-family: inherit; }
   padding: 11px 12px;
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid rgba(197, 123, 87, 0.3);
-  border-radius: 14px;
+  border-radius: var(--radio);
 }
 
 .importador-mapeo-head {
@@ -1922,7 +1929,7 @@ button, input, select, textarea { font-family: inherit; }
   padding: 3px 8px;
   font-size: 9.6px;
   font-weight: 600;
-  border-radius: 999px;
+  border-radius: var(--radio);
   background: rgba(37, 22, 5, 0.08);
   color: var(--coffee);
 }
@@ -1933,7 +1940,7 @@ button, input, select, textarea { font-family: inherit; }
   padding: 9px 10px;
   background: rgba(255, 255, 255, 0.52);
   border: 1px solid rgba(197, 123, 87, 0.28);
-  border-radius: 14px;
+  border-radius: var(--radio);
 }
 
 .importador-fila.is-invalid { border-color: rgba(143, 59, 30, 0.5); background: rgba(255, 240, 232, 0.75); }
@@ -1957,7 +1964,7 @@ button, input, select, textarea { font-family: inherit; }
   font-weight: 700;
   color: var(--cream);
   background: var(--cinnamon);
-  border-radius: 6px;
+  border-radius: var(--radio);
 }
 
 .importador-fila-titulo {
@@ -1977,7 +1984,7 @@ button, input, select, textarea { font-family: inherit; }
   align-items: center;
   gap: 7px;
   padding: 6px 8px;
-  border-radius: 10px;
+  border-radius: var(--radio);
 }
 
 .importador-estado {
@@ -1987,7 +1994,7 @@ button, input, select, textarea { font-family: inherit; }
   font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  border-radius: 999px;
+  border-radius: var(--radio);
   background: rgba(37, 22, 5, 0.1);
   color: rgba(37, 22, 5, 0.72);
 }
@@ -2030,7 +2037,7 @@ button, input, select, textarea { font-family: inherit; }
   color: #8a5715;
   background: rgba(247, 219, 167, 0.6);
   border-left: 3px solid var(--cinnamon);
-  border-radius: 7px;
+  border-radius: var(--radio);
 }
 
 .importador-candidatos {
@@ -2048,7 +2055,7 @@ button, input, select, textarea { font-family: inherit; }
   cursor: pointer;
   background: rgba(255, 255, 255, 0.66);
   border: 1px solid rgba(37, 22, 5, 0.12);
-  border-radius: 11px;
+  border-radius: var(--radio);
 }
 
 .importador-candidato:hover { border-color: rgba(197, 123, 87, 0.55); }
@@ -2082,7 +2089,7 @@ button, input, select, textarea { font-family: inherit; }
   padding: 9px 10px;
   background: rgba(255, 255, 255, 0.6);
   border: 1px dashed rgba(37, 22, 5, 0.2);
-  border-radius: 12px;
+  border-radius: var(--radio);
 }
 
 .importador-manual .btn { grid-column: 1 / -1; justify-self: start; }
@@ -2106,7 +2113,7 @@ button, input, select, textarea { font-family: inherit; }
   cursor: pointer;
   background: rgba(255, 255, 255, 0.6);
   border: 1px solid rgba(37, 22, 5, 0.14);
-  border-radius: 9px;
+  border-radius: var(--radio);
 }
 
 .importador-seleccion input { accent-color: var(--cinnamon); }
@@ -2130,14 +2137,14 @@ button, input, select, textarea { font-family: inherit; }
   margin-top: 7px;
   overflow: hidden;
   background: rgba(37, 22, 5, 0.12);
-  border-radius: 999px;
+  border-radius: var(--radio);
 }
 
 .importador-barra span {
   display: block;
   height: 100%;
   background: linear-gradient(90deg, var(--cinnamon), var(--tangerine));
-  border-radius: 999px;
+  border-radius: var(--radio);
   transition: width 0.25s ease;
 }
 
@@ -2149,13 +2156,15 @@ button, input, select, textarea { font-family: inherit; }
 
 .dialogo-caja {
   color: var(--coffee);
-  background: var(--panel-gradient);
-  border: 1px solid rgba(197, 123, 87, 0.5);
-  border-radius: 22px;
+  background: var(--dialogo-glass);
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  border-radius: var(--radio);
   box-shadow:
-    0 30px 70px rgba(10, 6, 2, 0.55),
-    0 2px 0 rgba(255, 255, 255, 0.55) inset;
+    0 30px 70px rgba(10, 6, 2, 0.5),
+    0 1px 0 rgba(255, 255, 255, 0.65) inset;
   overflow: hidden;
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
   animation: dialogo-entrada 0.16s ease-out;
 }
 
@@ -2213,7 +2222,7 @@ button, input, select, textarea { font-family: inherit; }
   padding: 8px 14px;
   font-size: 12px;
   font-weight: 600;
-  border-radius: 11px;
+  border-radius: var(--radio);
 }
 
 /* Acción destructiva: sólida, dentro de los tonos ya usados por la app. */
@@ -2238,4 +2247,95 @@ button, input, select, textarea { font-family: inherit; }
 @keyframes dialogo-entrada {
   from { opacity: 0; transform: translateY(6px) scale(0.985); }
   to { opacity: 1; transform: none; }
+}
+
+/* ---------- Recorrido animado de la ruta (v0.2.2) ---------- */
+
+.recorrido-marca {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  color: var(--coffee);
+  background: radial-gradient(circle at 32% 26%, #fff9ee 0%, var(--peach) 68%, var(--tangerine) 100%);
+  border: 2px solid var(--cinnamon);
+  border-radius: var(--radio);
+  box-shadow:
+    0 7px 18px rgba(10, 6, 2, 0.5),
+    0 0 0 3px rgba(241, 171, 134, 0.22);
+}
+
+.recorrido-marca.is-animando {
+  box-shadow:
+    0 7px 18px rgba(10, 6, 2, 0.5),
+    0 0 0 6px rgba(241, 171, 134, 0.16);
+}
+
+.recorrido-marca-icono {
+  display: grid;
+  place-items: center;
+  transition: transform 140ms linear;
+  transform-origin: 50% 50%;
+}
+
+.recorrido-controles {
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px dashed rgba(37, 22, 5, 0.16);
+}
+
+.recorrido-barra {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.recorrido-progreso {
+  flex: 1 1 auto;
+  height: 6px;
+  overflow: hidden;
+  background: rgba(37, 22, 5, 0.14);
+  border-radius: var(--radio);
+}
+
+.recorrido-progreso span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--cinnamon), var(--tangerine));
+  border-radius: var(--radio);
+}
+
+.recorrido-porcentaje {
+  flex: none;
+  min-width: 30px;
+  font-size: 9.8px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ink-soft);
+}
+
+.recorrido-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.recorrido-estado {
+  margin: 7px 0 0;
+  font-size: 10.2px;
+  font-weight: 600;
+  color: #2f6349;
+}
+
+.recorrido-nota {
+  margin: 7px 0 0;
+  font-size: 9.6px;
+  line-height: 1.4;
+  color: rgba(37, 22, 5, 0.58);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recorrido-marca-icono { transition: none; }
 }

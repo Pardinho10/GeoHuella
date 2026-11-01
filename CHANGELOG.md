@@ -3,6 +3,17 @@
 Todas las versiones relevantes de GeoHuella se documentan en este archivo.
 El formato sigue [Versionado Semántico](https://semver.org/lang/es/).
 
+## [0.2.2] - 2026-11-01
+
+### Agregado
+
+- Animación del recorrido sobre la geometría real de la ruta, con iconos de auto, bicicleta y caminante; auto y bicicleta siguen la orientación de cada segmento y la ida y vuelta se reproduce en orden.
+- Controles accesibles para reproducir, pausar y reiniciar; respeta `prefers-reduced-motion` y ofrece pasos manuales cuando está activo.
+
+### Notas
+
+- La duración de la animación es visual y no representa la duración estimada del viaje. No requiere cambios en backend ni en el contrato de API.
+
 ## [0.2.1] - 2026-10-30
 
 ### Mejorado

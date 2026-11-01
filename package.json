@@ -1,6 +1,6 @@
 {
   "name": "piloto-mapa",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "Scripts raíz para ejecutar conjuntamente backend y frontend de GeoHuella",
   "scripts": {

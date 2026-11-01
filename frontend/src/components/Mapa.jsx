@@ -8,6 +8,7 @@ import { offsetsPorCoordenada } from '../lib/marcadores.js';
 import { ajustarVista } from '../lib/vista.js';
 import { boundsDeRuta, formatearDistancia, pinturaTramo, tramosDeRuta, TRAMOS_RUTA } from '../lib/ruta.js';
 import IconHuella from './IconHuella.jsx';
+import IconoPerfil from './IconosRecorrido.jsx';
 
 setWorkerUrl(workerUrl);
 
@@ -149,6 +150,9 @@ export default function Mapa({
   fitAll,
   ruta,
   fitRuta,
+  posicionRecorrido = null,
+  perfilRecorrido = 'walking',
+  recorridoAnimando = false,
   lugares = [],
   origenLugares,
   lugarActivo,
@@ -284,6 +288,35 @@ export default function Mapa({
           </Marker>
         );
       })}
+
+      {posicionRecorrido && (
+        <Marker
+          longitude={posicionRecorrido.lng}
+          latitude={posicionRecorrido.lat}
+          anchor="center"
+        >
+          <div
+            className={`recorrido-marca${recorridoAnimando ? ' is-animando' : ''}`}
+            data-testid="recorrido-marca"
+            data-perfil={perfilRecorrido}
+            data-tramo={posicionRecorrido.tramo || 'ida'}
+            data-rumbo={Math.round(posicionRecorrido.rumbo || 0)}
+            data-lat={posicionRecorrido.lat.toFixed(6)}
+            data-lng={posicionRecorrido.lng.toFixed(6)}
+            title="Recorrido animado"
+            aria-hidden="true"
+          >
+            <span
+              className="recorrido-marca-icono"
+              style={perfilRecorrido === 'walking'
+                ? undefined
+                : { transform: `rotate(${Math.round(posicionRecorrido.rumbo || 0)}deg)` }}
+            >
+              <IconoPerfil perfil={perfilRecorrido} size={24} />
+            </span>
+          </div>
+        </Marker>
+      )}
 
       {popup && (
         <Popup

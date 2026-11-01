@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { cargarElementos, guardarElementos, cargarContador, guardarContador, colorSeguro, MAX_ELEMENTOS } from './lib/storage.js';
 import { agregarCandidatos, parsearCoordenada, parsearParPegado, enRangoArgentina, normalizarTexto } from './lib/elementos.js';
 import { obtenerProvincias, geocodificar, ubicarCoordenadas, calcularRuta, buscarLugaresCercanos } from './api';
@@ -6,6 +6,8 @@ import IconHuella from './components/IconHuella.jsx';
 import Importador from './components/Importador.jsx';
 import { useDialogos } from './components/Dialogo.jsx';
 import { MAX_PUNTOS_RUTA, PERFILES_RUTA, etiquetaPerfil, formatearDistancia, formatearDuracion, analizarLimiteRuta, mensajeExcedenteRuta, mensajeMaximoRuta, leyendaRuta } from './lib/ruta.js';
+import { avanzarProgreso, construirRecorrido, duracionAnimacionMs, interpolarEnRecorrido, observarMovimientoReducido, PASO_MANUAL, prefiereMovimientoReducido } from './lib/animacion.js';
+import ControlesRecorrido from './components/ControlesRecorrido.jsx';
 import { VERSION } from './version.js';
 
 const Mapa = React.lazy(() => import('./components/Mapa.jsx'));
@@ -94,6 +96,15 @@ export default function App() {
   const [errorRuta, setErrorRuta] = useState(null);
   const [fitRuta, setFitRuta] = useState(0);
 
+  // Animación del recorrido sobre la geometría de la ruta.
+  const [progresoRecorrido, setProgresoRecorrido] = useState(0);
+  const [reproduciendoRecorrido, setReproduciendoRecorrido] = useState(false);
+  const [completadoRecorrido, setCompletadoRecorrido] = useState(false);
+  const [movimientoReducido, setMovimientoReducido] = useState(() => prefiereMovimientoReducido());
+  const rafRecorrido = useRef(0);
+  const baseRecorrido = useRef(0);
+  const reducidoRef = useRef(movimientoReducido);
+
   // Lugares cercanos a una huella.
   const [alrededorId, setAlrededorId] = useState(null);
   const [lugaresAlrededor, setLugaresAlrededor] = useState([]);
@@ -132,6 +143,55 @@ export default function App() {
       setErrorRuta(null);
     }
   }, [elementos, ruta]);
+
+  // La animación sigue la geometría: se reconstruye solo cuando cambia la ruta.
+  const recorridoAnimado = useMemo(() => construirRecorrido(ruta), [ruta]);
+  const duracionRecorrido = recorridoAnimado
+    ? duracionAnimacionMs(recorridoAnimado.distanciaMetros)
+    : 0;
+  const posicionRecorrido = useMemo(
+    () => interpolarEnRecorrido(recorridoAnimado, progresoRecorrido),
+    [recorridoAnimado, progresoRecorrido],
+  );
+
+  useEffect(() => {
+    reducidoRef.current = movimientoReducido;
+    // Si la persona activa movimiento reducido mientras corre, se pausa.
+    if (movimientoReducido) setReproduciendoRecorrido(false);
+  }, [movimientoReducido]);
+
+  useEffect(() => observarMovimientoReducido(setMovimientoReducido), []);
+
+  // Ruta nueva, editada o quitada: la animación vuelve al inicio.
+  useEffect(() => {
+    baseRecorrido.current = 0;
+    setProgresoRecorrido(0);
+    setCompletadoRecorrido(false);
+    setReproduciendoRecorrido(Boolean(recorridoAnimado) && !reducidoRef.current);
+  }, [recorridoAnimado]);
+
+  useEffect(() => {
+    if (!reproduciendoRecorrido || !recorridoAnimado) return undefined;
+    const duracion = Math.max(1, duracionAnimacionMs(recorridoAnimado.distanciaMetros));
+    const arranque = baseRecorrido.current;
+    const inicio = Date.now();
+
+    const paso = () => {
+      const avance = Math.min(1, arranque + (Date.now() - inicio) / duracion);
+      if (avance >= 1) {
+        baseRecorrido.current = 1;
+        setProgresoRecorrido(1);
+        setCompletadoRecorrido(true);
+        setReproduciendoRecorrido(false);
+        return;
+      }
+      setProgresoRecorrido(avance);
+      rafRecorrido.current = requestAnimationFrame(paso);
+    };
+
+    rafRecorrido.current = requestAnimationFrame(paso);
+    return () => cancelAnimationFrame(rafRecorrido.current);
+  }, [reproduciendoRecorrido, recorridoAnimado]);
 
   useEffect(() => {
     if (alrededorId && !elementos.some((el) => el.id === alrededorId)) {
@@ -609,6 +669,35 @@ export default function App() {
     setErrorRuta(null);
   }
 
+  function reproducirRecorrido() {
+    if (!recorridoAnimado) return;
+    const desde = completadoRecorrido || progresoRecorrido >= 1 ? 0 : progresoRecorrido;
+    baseRecorrido.current = desde;
+    setProgresoRecorrido(desde);
+    setCompletadoRecorrido(false);
+    setReproduciendoRecorrido(true);
+  }
+
+  function pausarRecorrido() {
+    baseRecorrido.current = progresoRecorrido;
+    setReproduciendoRecorrido(false);
+  }
+
+  function reiniciarRecorrido() {
+    baseRecorrido.current = 0;
+    setReproduciendoRecorrido(false);
+    setProgresoRecorrido(0);
+    setCompletadoRecorrido(false);
+  }
+
+  function pasoRecorrido(direccion) {
+    const siguiente = avanzarProgreso(progresoRecorrido, direccion * PASO_MANUAL);
+    baseRecorrido.current = siguiente;
+    setReproduciendoRecorrido(false);
+    setProgresoRecorrido(siguiente);
+    setCompletadoRecorrido(siguiente >= 1);
+  }
+
   /** Vacía la selección de la ruta sin tocar las huellas guardadas. */
   function limpiarSeleccionRuta() {
     setSeleccionRuta(new Set());
@@ -693,6 +782,9 @@ export default function App() {
           fitAll={fitAll}
           ruta={ruta}
           fitRuta={fitRuta}
+          posicionRecorrido={posicionRecorrido}
+          perfilRecorrido={ruta?.perfil || 'walking'}
+          recorridoAnimando={reproduciendoRecorrido}
           lugares={lugaresAlrededor}
           origenLugares={puntoAlrededor}
           lugarActivo={lugarActivo}
@@ -1295,6 +1387,20 @@ export default function App() {
                     <div className="ruta-leyenda" aria-label="Referencia de colores de la ruta">
                       <LeyendaRuta entradas={entradasLeyenda} />
                     </div>
+                  )}
+                  {recorridoAnimado && (
+                    <ControlesRecorrido
+                      perfil={ruta.perfil}
+                      progreso={progresoRecorrido}
+                      reproduciendo={reproduciendoRecorrido}
+                      completado={completadoRecorrido}
+                      reducido={movimientoReducido}
+                      duracionMs={duracionRecorrido}
+                      onReproducir={reproducirRecorrido}
+                      onPausar={pausarRecorrido}
+                      onReiniciar={reiniciarRecorrido}
+                      onPaso={pasoRecorrido}
+                    />
                   )}
                   <div className="ruta-resumen-actions">
                     <button

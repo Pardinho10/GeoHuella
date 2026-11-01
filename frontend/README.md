@@ -1,6 +1,6 @@
 # Frontend — GeoHuella
 
-Versión actual: `0.2.1`, leída desde `../VERSION` y expuesta en el panel como `v0.2.1`.
+Versión actual: `0.2.2`, leída desde `../VERSION` y expuesta en el panel como `v0.2.2`.
 
 SPA en React + Vite (JavaScript), Bootstrap 5 y MapLibre GL JS con tiles vectoriales de OpenFreeMap. Interfaz en español, con panel cálido editorial sobre mapa oscuro, tipografía Poppins y la paleta `#251605`, `#c57b57`, `#f1ab86`, `#f7dba7`, `#9cafb7`.
 
@@ -30,6 +30,8 @@ npm run build
 
 ## Experiencia
 
+- Recorrido animado (v0.2.2): el marcador de auto, bicicleta o caminante sigue la geometría real de la ruta; auto y bicicleta orientan su rumbo según cada segmento. Ida y vuelta se reproduce en secuencia, con controles accesibles y soporte para `prefers-reduced-motion`. La duración es visual y no equivale a la estimación del viaje.
+
 - Panel con cabecera de marca, resumen de puntos, pestañas segmentadas, validación bajo cada campo y estados de carga.
 - Resultados de dirección y sugerencias cercanas se muestran en tarjetas; las cercanas están marcadas como aproximadas y solo se agregan tras selección explícita.
 - Marcadores cíclicos de la paleta con resplandor bajo. Los puntos coincidentes se separan visualmente sin alterar sus coordenadas.
@@ -38,7 +40,9 @@ npm run build
 - Tooltip nativo al pasar el cursor y popup al hacer clic, con nombre, dirección y coordenadas a 6 decimales. El mapa vectorial permite zoom hasta 20; OpenFreeMap publica datos hasta zoom 14 y MapLibre los amplía sin devolver tiles de error.
 - Panel colapsable; en móvil se convierte en hoja inferior y los controles de zoom se reubican por encima.
 - Cada huella se puede editar, subir o bajar dentro de la lista y filtrar por nombre o dirección. El orden de la lista se usa como orden base para las rutas sin optimización.
-- Importación masiva v0.2.1: pegar direcciones línea por línea o cargar CSV, mapear/editar columnas, revisar resultados, reintentar filas, detectar duplicados y confirmar qué huellas agregar. Límite de 100 filas; geocodificación secuencial en bloques de hasta 10 con progreso y cancelación entre bloques; estados por fila (pendiente, buscando, encontrada, ambigua, sin resultado, error, cancelada); los candidatos aproximados nunca quedan preseleccionados y requieren elección explícita. Excel queda fuera de esta versión.
+- Importación masiva v0.2.0: pegar direcciones línea por línea o cargar CSV, mapear/editar columnas, revisar resultados, reintentar filas, detectar duplicados y confirmar qué huellas agregar. Límite de 100 filas; geocodificación secuencial en bloques de hasta 10 con progreso y cancelación entre bloques; estados por fila (pendiente, buscando, encontrada, ambigua, sin resultado, error, cancelada); los candidatos aproximados nunca quedan preseleccionados y requieren elección explícita. Excel queda fuera de esta versión.
+
+- Animación del recorrido sobre la geometría real, con iconos por perfil, orientación para auto y bicicleta, ida y vuelta secuencial, controles accesibles y respeto por `prefers-reduced-motion`. La duración es visual, no representa el tiempo real del viaje.
 
 Las sugerencias cercanas dependen de que `POST /api/geocodificar/` devuelva `error.sugerencias` en una respuesta 404. El cliente normaliza esa respuesta para no perder las alternativas. El backend puede completarlas con resultados de Nominatim o de HERE; las alturas interpoladas por HERE se presentan como aproximadas y nunca se agregan automáticamente. En la importación masiva, el indicador de una coincidencia aproximada es la etiqueta “Aproximada”, y cancelar solo evita iniciar nuevos bloques: el backend puede terminar el bloque en curso.
 
